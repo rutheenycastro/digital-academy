@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Digital Academy — Plataforma de Treinamento
 
-## Getting Started
+Plataforma corporativa de treinamento para a Digital Comunicação Visual (gráfica, malharia, fábrica de tendas e brindes).
 
-First, run the development server:
+## Stack
+
+- **Frontend**: Next.js 15 (App Router) + TypeScript + Tailwind CSS
+- **Backend / DB**: Supabase (PostgreSQL + Auth + RLS)
+- **Deploy**: Vercel
+
+## Funcionalidades
+
+- Login com controle de acesso por perfil (colaborador / gestor / RH / admin)
+- Trilhas de treinamento por função com módulos de vídeo, texto, quiz e prática
+- Biblioteca de máquinas com manuais e vídeos por equipamento
+- Sistema de pontos, níveis e conquistas (gamificação)
+- Avaliações e quizzes com pontuação automática
+- Certificados (NR-12, Vale e internos)
+- RACs com prazos e status de acompanhamento
+- Feed de melhorias 5S com curtidas e pontuação
+- Chat com assistente IA
+- Painel do gestor: dashboard, colaboradores e relatórios
+
+## Setup local
 
 ```bash
+# 1. Instale as dependências
+npm install
+
+# 2. Configure variáveis de ambiente
+cp .env.example .env.local
+# edite .env.local com suas credenciais Supabase
+
+# 3. Execute o schema no SQL Editor do Supabase
+# Cole o conteúdo de supabase/migrations/001_schema.sql
+
+# 4. Rode o projeto
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Crie um projeto em [supabase.com](https://supabase.com)
+2. Copie **URL** e **anon key** em Settings > API
+3. Cole no `.env.local`
+4. Execute `supabase/migrations/001_schema.sql` no SQL Editor
 
-## Learn More
+## Deploy (Vercel)
 
-To learn more about Next.js, take a look at the following resources:
+1. Push para o GitHub
+2. Conecte o repositório na [Vercel](https://vercel.com)
+3. Adicione as variáveis de ambiente no painel Vercel
+4. Deploy automático a cada push em `main`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Estrutura
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/
+    (auth)/login/       — Tela de login
+    (dashboard)/        — Área do colaborador
+      inicio/           — Dashboard pessoal
+      treinamentos/     — Lista de treinamentos
+      biblioteca/       — Biblioteca de máquinas
+      certificados/     — Certificados emitidos
+      avaliacoes/       — Quizzes e avaliações
+      atividades/       — Feed de melhorias 5S
+      racs/             — RACs
+      conquistas/       — Gamificação e ranking
+      chat/             — Assistente IA
+    (gestor)/           — Área restrita gestores/RH
+      dashboard/        — Painel executivo
+      colaboradores/    — Gestão da equipe
+      relatorios/       — Relatórios e gráficos
+    api/                — API Routes Next.js
+  components/layout/    — Sidebar e Topbar
+  lib/supabase/         — Clientes browser + server
+  types/                — TypeScript types
+supabase/migrations/    — Schema SQL do banco
+```
