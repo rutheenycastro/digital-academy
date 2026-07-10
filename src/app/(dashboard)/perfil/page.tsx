@@ -27,7 +27,8 @@ export default function PerfilPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: prof } = await supabase.from('profiles').select('*').eq('user_id', user.id).single()
+      const res = await fetch('/api/update-profile?get=true')
+      const prof = res.ok ? await res.json() : null
       const { data: hist } = await supabase
         .from('progresso_treinamentos')
         .select('*, treinamento:treinamentos(titulo, categoria)')
