@@ -11,6 +11,17 @@ export default function LoginPage() {
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [erro, setErro] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resetEnviado, setResetEnviado] = useState(false)
+
+  async function handleEsqueceuSenha() {
+    if (!email) { setErro('Digite seu e-mail antes de clicar em "Esqueceu a senha?".'); return }
+    const supabase = createClient()
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    setResetEnviado(true)
+    setErro('')
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -100,9 +111,10 @@ export default function LoginPage() {
           </div>
 
           <div className="text-right">
-            <a href="#" className="text-xs text-[#7ED321] hover:underline">Esqueceu a senha?</a>
+            <button type="button" onClick={handleEsqueceuSenha} className="text-xs text-[#7ED321] hover:underline">Esqueceu a senha?</button>
           </div>
 
+          {resetEnviado && <p className="text-xs text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2">Email de recuperação enviado! Verifique sua caixa de entrada.</p>}
           {erro && <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{erro}</p>}
 
           <button
