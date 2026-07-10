@@ -5,7 +5,7 @@ import {
   Home, Laptop, Factory, Route, Award, ClipboardCheck,
   Activity, MessageCircle, LayoutDashboard, Users,
   BarChart3, Settings, Gift, AlertTriangle, Trophy, LogOut,
-  Lightbulb, Wrench, CalendarDays, FileText, Star
+  Lightbulb, Wrench, CalendarDays, FileText, Star, UserCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -23,6 +23,7 @@ const navItems = [
   { href: '/racs', icon: AlertTriangle, label: 'RACs' },
   { href: '/conquistas', icon: Trophy, label: 'Conquistas' },
   { href: '/chat', icon: MessageCircle, label: 'Chat com IA' },
+  { href: '/perfil', icon: UserCircle, label: 'Meu Perfil' },
 ]
 
 const gestorItems = [
