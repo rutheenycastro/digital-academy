@@ -1,14 +1,179 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 import { calcularNivel, formatPontos } from '@/lib/utils'
-import { ArrowRight, Play, Star, Calendar } from 'lucide-react'
+import { ArrowRight, Play, Star, Calendar, Users, TrendingUp, BookOpen, Award } from 'lucide-react'
 import Link from 'next/link'
 
+const SUPABASE_URL = 'https://hipuneooqzrpwbcyfzkp.supabase.co'
+const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpcHVuZW9vcXpycHdiY3lmemtwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTgxOTM4NywiZXhwIjoyMDk3Mzk1Mzg3fQ.F2nWXapFhZYTL0P4NciUBLFE1xPdfQaIi5ADyrZX9dA'
+
+function adminClient() {
+  return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
+}
+
+export const dynamic = 'force-dynamic'
+
 export default async function InicioPage() {
-  const supabase = await createClient()
+  const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: profile }, { data: progressos }, { data: racs }] = await Promise.all([
-    supabase.from('profiles').select('*').eq('user_id', user!.id).single(),
+  const { data: profile } = await adminClient().from('profiles').select('*').eq('user_id', user!.id).single()
+
+  const isGestor = ['admin', 'gestor', 'rh'].includes(profile?.role ?? '')
+
+  if (isGestor) {
+    // Dashboard do gestor: visão geral dos colaboradores
+    const [{ data: colaboradores }, { data: progressos }, { data: treinamentos }] = await Promise.all([
+      adminClient().from('profiles').select('*').eq('role', 'colaborador').order('nome'),
+      adminClient().from('progresso_treinamentos').select('*, treinamento:treinamentos(titulo), profile:profiles(nome)'),
+      adminClient().from('treinamentos').select('id, titulo, ativo').eq('ativo', true),
+    ])
+
+    const totalColabs = colaboradores?.length ?? 0
+    const concluidos = progressos?.filter(p => p.status === 'concluido').length ?? 0
+    const emAndamento = progressos?.filter(p => p.status === 'em_andamento').length ?? 0
+    const totalProgressos = progressos?.length ?? 0
+    const taxaConclusao = totalProgressos > 0 ? Math.round((concluidos / totalProgressos) * 100) : 0
+
+    // Top colaboradores por pontos
+    const topColabs = [...(colaboradores ?? [])].sort((a, b) => (b.pontos ?? 0) - (a.pontos ?? 0)).slice(0, 5)
+
+    // Progresso por colaborador
+    const progressoPorColab = (colaboradores ?? []).map(c => {
+      const ps = progressos?.filter(p => p.user_id === c.user_id) ?? []
+      const conc = ps.filter(p => p.status === 'concluido').length
+      const pct = ps.length > 0 ? Math.round((conc / ps.length) * 100) : 0
+      return { ...c, treinamentos_total: ps.length, treinamentos_concluidos: conc, percentual: pct }
+    }).sort((a, b) => b.percentual - a.percentual)
+
+    return (
+      <div className="grid grid-cols-[1fr_260px] gap-4">
+        <div>
+          {/* Cards resumo */}
+          <div className="grid grid-cols-4 gap-3 mb-4">
+            {[
+              { label: 'Colaboradores', value: totalColabs, icon: Users, cor: 'text-blue-500', bg: 'bg-blue-50' },
+              { label: 'Treinamentos ativos', value: treinamentos?.length ?? 0, icon: BookOpen, cor: 'text-[#7ED321]', bg: 'bg-green-50' },
+              { label: 'Em andamento', value: emAndamento, icon: TrendingUp, cor: 'text-amber-500', bg: 'bg-amber-50' },
+              { label: 'Taxa de conclusão', value: `${taxaConclusao}%`, icon: Award, cor: 'text-purple-500', bg: 'bg-purple-50' },
+            ].map(({ label, value, icon: Icon, cor, bg }) => (
+              <div key={label} className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center mb-2`}>
+                  <Icon size={16} className={cor} />
+                </div>
+                <p className="text-xl font-bold text-gray-900">{value}</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Progresso dos colaboradores */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-bold text-gray-900">Progresso por colaborador</h2>
+              <Link href="/colaboradores" className="text-xs text-[#7ED321] hover:underline">Ver todos →</Link>
+            </div>
+            {progressoPorColab.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">Nenhum colaborador cadastrado ainda.</p>
+            ) : (
+              <div className="space-y-3">
+                {progressoPorColab.slice(0, 8).map(c => {
+                  const iniciais = c.nome?.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase() || '?'
+                  return (
+                    <div key={c.id} className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-xs font-bold text-[#7ED321] flex-shrink-0">{iniciais}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-gray-900 truncate">{c.nome}</span>
+                          <span className="text-[11px] text-gray-500 ml-2 flex-shrink-0">{c.treinamentos_concluidos}/{c.treinamentos_total}</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full">
+                          <div className="h-full rounded-full bg-[#7ED321] transition-all" style={{ width: `${c.percentual}%` }} />
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-gray-600 w-10 text-right">{c.percentual}%</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Treinamentos ativos */}
+          {(treinamentos?.length ?? 0) > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold text-gray-900">Treinamentos ativos</h2>
+                <Link href="/admin-treinamentos" className="text-xs text-[#7ED321] hover:underline">Gerenciar →</Link>
+              </div>
+              <div className="space-y-2">
+                {treinamentos?.slice(0, 5).map(t => {
+                  const conc = progressos?.filter(p => p.treinamento_id === t.id && p.status === 'concluido').length ?? 0
+                  const total = progressos?.filter(p => p.treinamento_id === t.id).length ?? 0
+                  return (
+                    <div key={t.id} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
+                      <BookOpen size={14} className="text-[#7ED321] flex-shrink-0" />
+                      <span className="text-xs font-semibold text-gray-900 flex-1 truncate">{t.titulo}</span>
+                      <span className="text-[11px] text-gray-500 flex-shrink-0">{conc}/{total} concluídos</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Coluna direita */}
+        <div className="space-y-3">
+          {/* Ranking */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-900 mb-3">
+              <Star size={14} className="text-[#7ED321]" /> Top colaboradores
+            </div>
+            {topColabs.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-3">Sem dados ainda</p>
+            ) : topColabs.map((c, i) => {
+              const iniciais = c.nome?.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase() || '?'
+              const medalha = ['🥇', '🥈', '🥉', '4º', '5º'][i]
+              return (
+                <div key={c.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0">
+                  <span className="text-sm w-5 text-center">{medalha}</span>
+                  <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center text-[10px] font-bold text-[#7ED321] flex-shrink-0">{iniciais}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-900 truncate">{c.nome}</p>
+                    <p className="text-[10px] text-gray-400 truncate">{c.funcao || c.setor || ''}</p>
+                  </div>
+                  <span className="text-xs font-bold text-[#7ED321]">{(c.pontos ?? 0).toLocaleString('pt-BR')}</span>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Atalhos */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <p className="text-xs font-bold text-gray-900 mb-3">Atalhos rápidos</p>
+            <div className="space-y-2">
+              {[
+                { href: '/admin-usuarios', label: 'Novo colaborador', icon: Users },
+                { href: '/admin-treinamentos', label: 'Novo treinamento', icon: BookOpen },
+                { href: '/ideias-pendentes', label: 'Ideias pendentes', icon: TrendingUp },
+                { href: '/admin-bonificacoes', label: 'Bonificações', icon: Award },
+              ].map(({ href, label, icon: Icon }) => (
+                <Link key={href} href={href}
+                  className="flex items-center gap-2.5 px-3 py-2 bg-gray-50 rounded-lg text-xs text-gray-700 hover:bg-green-50 hover:text-[#7ED321] transition-colors">
+                  <Icon size={13} className="flex-shrink-0" /> {label}
+                  <ArrowRight size={11} className="ml-auto" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ---- VISÃO DO COLABORADOR ----
+  const [{ data: progressos }, { data: racs }] = await Promise.all([
     supabase.from('progresso_treinamentos').select('*, treinamento:treinamentos(titulo,categoria)').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(8),
     supabase.from('racs').select('*').eq('user_id', user!.id).eq('status', 'aberta').order('prazo'),
   ])
@@ -17,12 +182,11 @@ export default async function InicioPage() {
   const concluidos = progressos?.filter(p => p.status === 'concluido').length ?? 0
   const total = progressos?.length ?? 0
   const percentualGeral = total > 0 ? Math.round((concluidos / total) * 100) : 0
-  const emAndamento = progressos?.find(p => p.status === 'em_andamento')
+  const emAndamento2 = progressos?.find(p => p.status === 'em_andamento')
 
   return (
     <div className="grid grid-cols-[1fr_256px] gap-4">
       <div>
-        {/* Hero progresso */}
         <div className="bg-gray-900 rounded-2xl p-5 mb-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-gray-400 mb-1">Seu progresso geral</p>
@@ -39,8 +203,7 @@ export default async function InicioPage() {
           </div>
         </div>
 
-        {/* Treinamento atual */}
-        {emAndamento && (
+        {emAndamento2 && (
           <>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-gray-900">Seu treinamento atual</h2>
@@ -53,10 +216,10 @@ export default async function InicioPage() {
                 </div>
                 <div className="p-4 flex-1">
                   <p className="text-[9px] text-gray-400 uppercase tracking-wider mb-1">Curso em andamento</p>
-                  <h3 className="text-sm font-bold text-gray-900 mb-1">{emAndamento.treinamento?.titulo}</h3>
-                  <p className="text-xs text-gray-500 mb-3">{emAndamento.treinamento?.categoria}</p>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">{emAndamento2.treinamento?.titulo}</h3>
+                  <p className="text-xs text-gray-500 mb-3">{emAndamento2.treinamento?.categoria}</p>
                   <div className="h-1.5 bg-gray-100 rounded-full mb-3">
-                    <div className="h-full rounded-full bg-[#7ED321]" style={{ width: `${emAndamento.percentual}%` }} />
+                    <div className="h-full rounded-full bg-[#7ED321]" style={{ width: `${emAndamento2.percentual}%` }} />
                   </div>
                   <Link href="/treinamentos" className="inline-flex items-center gap-1.5 bg-[#7ED321] text-black text-xs font-bold px-3 py-1.5 rounded-lg">
                     <Play size={12} /> Continuar aula
@@ -67,12 +230,10 @@ export default async function InicioPage() {
           </>
         )}
 
-        {/* Pendências RAC */}
         {(racs?.length ?? 0) > 0 && (
           <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
             <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-500" />
-              RACs pendentes
+              <span className="w-2 h-2 rounded-full bg-red-500" /> RACs pendentes
             </h2>
             <div className="space-y-2">
               {racs?.slice(0, 3).map(rac => (
@@ -86,29 +247,9 @@ export default async function InicioPage() {
             </div>
           </div>
         )}
-
-        {/* Progresso dos módulos */}
-        {(progressos?.length ?? 0) > 0 && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <h2 className="text-sm font-semibold text-gray-900 mb-3">Progresso dos treinamentos</h2>
-            <div className="space-y-3">
-              {progressos?.slice(0, 6).map(p => (
-                <div key={p.id} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-600 w-40 truncate">{p.treinamento?.titulo}</span>
-                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full">
-                    <div className="h-full rounded-full bg-[#7ED321]" style={{ width: `${p.percentual}%` }} />
-                  </div>
-                  <span className="text-[10px] text-gray-400 w-8 text-right">{p.percentual}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Coluna direita */}
       <div className="space-y-3">
-        {/* Pontos */}
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-xs font-semibold text-gray-900 mb-3">
             <Star size={14} className="text-[#7ED321]" /> Seus pontos
@@ -125,7 +266,6 @@ export default async function InicioPage() {
           )}
         </div>
 
-        {/* Assistente IA */}
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-xs font-semibold text-gray-900 mb-2">
             <span className="text-sm">✦</span> Assistente IA
@@ -141,7 +281,6 @@ export default async function InicioPage() {
           </Link>
         </div>
 
-        {/* Próximas atividades */}
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-xs font-semibold text-gray-900 mb-3">
             <Calendar size={14} className="text-[#7ED321]" /> Próximas atividades
