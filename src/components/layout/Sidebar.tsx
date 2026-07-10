@@ -39,12 +39,13 @@ const gestorItems = [
   { href: '/admin-bonificacoes', icon: Gift, label: 'Bonificações', roles: ['admin', 'gestor', 'rh'] },
 ]
 
-export function Sidebar() {
+export function Sidebar({ role: roleProp }: { role?: string }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [role, setRole] = useState<string>('colaborador')
+  const [role, setRole] = useState<string>(roleProp ?? 'colaborador')
 
   useEffect(() => {
+    if (roleProp) { setRole(roleProp); return }
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -52,7 +53,7 @@ export function Sidebar() {
           .then(({ data }) => { if (data) setRole(data.role) })
       }
     })
-  }, [])
+  }, [roleProp])
 
   async function handleLogout() {
     const supabase = createClient()

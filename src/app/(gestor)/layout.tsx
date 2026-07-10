@@ -22,7 +22,7 @@ export default async function GestorLayout({ children }: { children: React.React
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar role={profile.role} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar nome={profile.nome} funcao={profile.funcao} />
         <main className="flex-1 overflow-y-auto bg-gray-100 p-5">{children}</main>

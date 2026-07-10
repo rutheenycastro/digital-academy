@@ -20,13 +20,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: profile } = await admin
     .from('profiles')
-    .select('nome, funcao')
+    .select('nome, funcao, role')
     .eq('user_id', user.id)
     .single()
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar role={profile?.role} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar nome={profile?.nome} funcao={profile?.funcao} />
         <main className="flex-1 overflow-y-auto bg-gray-100 p-5">
