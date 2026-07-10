@@ -1,18 +1,28 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star } from 'lucide-react'
+import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star, Video, ChevronDown, ChevronUp, GripVertical, HelpCircle } from 'lucide-react'
 
-type Treinamento = { id: string; titulo: string; categoria: string; carga_horaria: number; pontos_conclusao: number; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean }
+type Treinamento = { id: string; titulo: string; categoria: string; carga_horaria: number; pontos_conclusao: number; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; modulos?: Modulo[] }
+type Modulo = { id?: string; titulo: string; video_url: string; descricao: string; ordem: number; tem_avaliacao: boolean; perguntas?: Pergunta[] }
+type Pergunta = { id?: string; texto: string; opcoes: string[]; resposta_correta: number }
 type Form = { titulo: string; categoria: string; carga_horaria: string; pontos_conclusao: string; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean }
 
 const emptyForm: Form = { titulo: '', categoria: '', carga_horaria: '1', pontos_conclusao: '100', ativo: true, requerido_vale: false, obrigatorio: false }
-const categorias = ['Segurança', 'Qualidade', 'Operações', 'Gestão', 'Compliance', 'Tecnologia', 'RH', 'Financeiro', 'Outros']
+const categorias = ['Segurança', 'Qualidade', 'Operações', 'Gestão', 'Compliance', 'Tecnologia', 'RH', 'Financeiro', 'Equipamentos', 'Outros']
+
+function emptyModulo(ordem: number): Modulo {
+  return { titulo: '', video_url: '', descricao: '', ordem, tem_avaliacao: false, perguntas: [] }
+}
+
+function emptyPergunta(): Pergunta {
+  return { texto: '', opcoes: ['', '', '', ''], resposta_correta: 0 }
+}
 
 export default function AdminTreinamentosPage() {
   const [treinamentos, setTreinamentos] = useState<Treinamento[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
-  const [modal, setModal] = useState<'criar' | 'editar' | 'excluir' | null>(null)
+  const [modal, setModal] = useState<'criar' | 'editar' | 'excluir' | 'modulos' | null>(null)
   const [selecionado, setSelecionado] = useState<Treinamento | null>(null)
   const [form, setForm] = useState<Form>(emptyForm)
   const [salvando, setSalvando] = useState(false)
@@ -34,6 +44,7 @@ export default function AdminTreinamentosPage() {
     setMsg(''); setModal('editar')
   }
   function abrirExcluir(t: Treinamento) { setSelecionado(t); setModal('excluir') }
+  function abrirModulos(t: Treinamento) { setSelecionado(t); setModal('modulos') }
 
   async function salvar() {
     setSalvando(true); setMsg('')
@@ -79,7 +90,7 @@ export default function AdminTreinamentosPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              {['Título', 'Categoria', 'Carga H.', 'Pontos', 'Status', 'Flags', ''].map(h => (
+              {['Título', 'Categoria', 'Módulos', 'Carga H.', 'Pontos', 'Status', ''].map(h => (
                 <th key={h} className="text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">{h}</th>
               ))}
             </tr>
@@ -89,11 +100,18 @@ export default function AdminTreinamentosPage() {
               <tr><td colSpan={7} className="text-center py-8 text-sm text-gray-400">Carregando...</td></tr>
             ) : filtrados.map(t => (
               <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 font-semibold text-gray-900 max-w-[220px]">
+                <td className="px-4 py-3 font-semibold text-gray-900 max-w-[200px]">
                   <span className="truncate block">{t.titulo}</span>
                 </td>
                 <td className="px-4 py-3">
                   <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{t.categoria || '—'}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <button onClick={() => abrirModulos(t)}
+                    className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold">
+                    <Video size={12} />
+                    {(t.modulos?.length ?? 0)} módulos
+                  </button>
                 </td>
                 <td className="px-4 py-3">
                   <span className="flex items-center gap-1 text-xs text-gray-600"><Clock size={11} /> {t.carga_horaria}h</span>
@@ -107,13 +125,8 @@ export default function AdminTreinamentosPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-1 flex-wrap">
-                    {t.obrigatorio && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-semibold">Obrig.</span>}
-                    {t.requerido_vale && <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold">Vale</span>}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
+                    <button onClick={() => abrirModulos(t)} title="Módulos e vídeos" className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-500"><Video size={13} /></button>
                     <button onClick={() => abrirEditar(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#7ED321]"><Pencil size={13} /></button>
                     <button onClick={() => abrirExcluir(t)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500"><Trash2 size={13} /></button>
                   </div>
@@ -124,6 +137,7 @@ export default function AdminTreinamentosPage() {
         </table>
       </div>
 
+      {/* Modal criar/editar */}
       {(modal === 'criar' || modal === 'editar') && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -134,7 +148,7 @@ export default function AdminTreinamentosPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
-                <input value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Nome do treinamento"
+                <input value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ex: Treinamento Impressora UV"
                   className="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm outline-none focus:border-[#7ED321]" />
               </div>
               <div>
@@ -170,6 +184,11 @@ export default function AdminTreinamentosPage() {
                   </label>
                 ))}
               </div>
+              {modal === 'criar' && (
+                <p className="text-[11px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                  Após salvar, clique em <strong>Módulos</strong> para adicionar os vídeos e avaliações.
+                </p>
+              )}
               {msg && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{msg}</p>}
             </div>
             <div className="flex gap-2 mt-5">
@@ -182,6 +201,7 @@ export default function AdminTreinamentosPage() {
         </div>
       )}
 
+      {/* Modal excluir */}
       {modal === 'excluir' && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
@@ -189,7 +209,7 @@ export default function AdminTreinamentosPage() {
               <AlertTriangle size={22} className="text-red-500" />
             </div>
             <h2 className="text-base font-bold text-gray-900 mb-1">Excluir treinamento</h2>
-            <p className="text-sm text-gray-500 mb-5">Tem certeza que deseja excluir <strong>{selecionado?.titulo}</strong>?</p>
+            <p className="text-sm text-gray-500 mb-5">Tem certeza que deseja excluir <strong>{selecionado?.titulo}</strong>? Todos os módulos e avaliações serão removidos.</p>
             <div className="flex gap-2">
               <button onClick={() => setModal(null)} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">Cancelar</button>
               <button onClick={excluir} disabled={salvando} className="flex-1 py-2 bg-red-500 text-white text-sm font-bold rounded-lg disabled:opacity-60">
@@ -199,6 +219,199 @@ export default function AdminTreinamentosPage() {
           </div>
         </div>
       )}
+
+      {/* Modal módulos */}
+      {modal === 'modulos' && selecionado && (
+        <ModulosModal treinamento={selecionado} onClose={() => { setModal(null); carregar() }} />
+      )}
+    </div>
+  )
+}
+
+function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onClose: () => void }) {
+  const [modulos, setModulos] = useState<Modulo[]>([])
+  const [loading, setLoading] = useState(true)
+  const [salvando, setSalvando] = useState(false)
+  const [expandido, setExpandido] = useState<number | null>(null)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    fetch(`/api/admin/modulos?treinamento_id=${treinamento.id}`)
+      .then(r => r.json())
+      .then(data => { setModulos(data ?? []); setLoading(false) })
+  }, [treinamento.id])
+
+  function addModulo() {
+    setModulos(prev => [...prev, emptyModulo(prev.length + 1)])
+    setExpandido(modulos.length)
+  }
+
+  function updateModulo(i: number, campo: keyof Modulo, valor: unknown) {
+    setModulos(prev => prev.map((m, idx) => idx === i ? { ...m, [campo]: valor } : m))
+  }
+
+  function removeModulo(i: number) {
+    setModulos(prev => prev.filter((_, idx) => idx !== i).map((m, idx) => ({ ...m, ordem: idx + 1 })))
+    setExpandido(null)
+  }
+
+  function addPergunta(iMod: number) {
+    setModulos(prev => prev.map((m, idx) => idx === iMod
+      ? { ...m, perguntas: [...(m.perguntas ?? []), emptyPergunta()] }
+      : m
+    ))
+  }
+
+  function updatePergunta(iMod: number, iPerg: number, campo: keyof Pergunta, valor: unknown) {
+    setModulos(prev => prev.map((m, idx) => idx === iMod
+      ? { ...m, perguntas: (m.perguntas ?? []).map((p, pi) => pi === iPerg ? { ...p, [campo]: valor } : p) }
+      : m
+    ))
+  }
+
+  function updateOpcao(iMod: number, iPerg: number, iOpc: number, valor: string) {
+    setModulos(prev => prev.map((m, idx) => idx === iMod
+      ? {
+          ...m, perguntas: (m.perguntas ?? []).map((p, pi) => pi === iPerg
+            ? { ...p, opcoes: p.opcoes.map((o, oi) => oi === iOpc ? valor : o) }
+            : p)
+        }
+      : m
+    ))
+  }
+
+  function removePergunta(iMod: number, iPerg: number) {
+    setModulos(prev => prev.map((m, idx) => idx === iMod
+      ? { ...m, perguntas: (m.perguntas ?? []).filter((_, pi) => pi !== iPerg) }
+      : m
+    ))
+  }
+
+  async function salvar() {
+    setSalvando(true); setMsg('')
+    const res = await fetch('/api/admin/modulos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ treinamento_id: treinamento.id, modulos })
+    })
+    if (res.ok) onClose()
+    else setMsg('Erro ao salvar módulos.')
+    setSalvando(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[92vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">Módulos do treinamento</h2>
+            <p className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">{treinamento.titulo}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+          {loading ? <p className="text-sm text-gray-400 text-center py-8">Carregando...</p> : (
+            <>
+              {modulos.map((m, i) => (
+                <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
+                  {/* Header do módulo */}
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50">
+                    <GripVertical size={14} className="text-gray-400 flex-shrink-0" />
+                    <div className="w-6 h-6 rounded-full bg-gray-900 text-[#7ED321] text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</div>
+                    <input value={m.titulo} onChange={e => updateModulo(i, 'titulo', e.target.value)}
+                      placeholder={`Módulo ${i + 1} — ex: Introdução à Impressora UV`}
+                      className="flex-1 text-sm font-semibold text-gray-900 bg-transparent outline-none placeholder-gray-400" />
+                    <button onClick={() => setExpandido(expandido === i ? null : i)} className="text-gray-400 hover:text-gray-600">
+                      {expandido === i ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                    </button>
+                    <button onClick={() => removeModulo(i)} className="text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
+                  </div>
+
+                  {expandido === i && (
+                    <div className="px-4 py-4 space-y-3">
+                      {/* URL do vídeo */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1"><Video size={12} /> Link do vídeo</label>
+                        <input value={m.video_url} onChange={e => updateModulo(i, 'video_url', e.target.value)}
+                          placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
+                          className="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm outline-none focus:border-[#7ED321]" />
+                        {m.video_url && (
+                          <a href={m.video_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-500 hover:underline mt-1 inline-block">
+                            Testar link →
+                          </a>
+                        )}
+                      </div>
+                      {/* Descrição */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Descrição (opcional)</label>
+                        <textarea value={m.descricao} onChange={e => updateModulo(i, 'descricao', e.target.value)}
+                          placeholder="O que o colaborador vai aprender neste módulo..."
+                          rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#7ED321] resize-none" />
+                      </div>
+                      {/* Avaliação */}
+                      <div>
+                        <label className="flex items-center gap-2 cursor-pointer mb-3">
+                          <input type="checkbox" checked={m.tem_avaliacao} onChange={e => updateModulo(i, 'tem_avaliacao', e.target.checked)} className="w-4 h-4 accent-[#7ED321]" />
+                          <span className="text-sm font-medium text-gray-700">Este módulo tem avaliação</span>
+                        </label>
+
+                        {m.tem_avaliacao && (
+                          <div className="space-y-3 pl-2 border-l-2 border-[#7ED321]/30">
+                            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1"><HelpCircle size={11} /> Perguntas da avaliação</p>
+                            {(m.perguntas ?? []).map((p, pi) => (
+                              <div key={pi} className="bg-gray-50 rounded-xl p-3 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-[10px] font-bold text-gray-400 mt-2 w-5 flex-shrink-0">{pi + 1}.</span>
+                                  <input value={p.texto} onChange={e => updatePergunta(i, pi, 'texto', e.target.value)}
+                                    placeholder="Texto da pergunta"
+                                    className="flex-1 h-8 border border-gray-200 rounded-lg px-2.5 text-sm outline-none focus:border-[#7ED321]" />
+                                  <button onClick={() => removePergunta(i, pi)} className="text-gray-400 hover:text-red-500 mt-1"><Trash2 size={12} /></button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 pl-7">
+                                  {p.opcoes.map((opc, oi) => (
+                                    <label key={oi} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${p.resposta_correta === oi ? 'border-[#7ED321] bg-green-50' : 'border-gray-200'}`}>
+                                      <input type="radio" name={`resp-${i}-${pi}`} checked={p.resposta_correta === oi}
+                                        onChange={() => updatePergunta(i, pi, 'resposta_correta', oi)}
+                                        className="accent-[#7ED321] flex-shrink-0" />
+                                      <input value={opc} onChange={e => updateOpcao(i, pi, oi, e.target.value)}
+                                        placeholder={`Opção ${oi + 1}`}
+                                        className="text-xs text-gray-700 bg-transparent outline-none w-full" />
+                                    </label>
+                                  ))}
+                                </div>
+                                <p className="text-[10px] text-gray-400 pl-7">Selecione o círculo da opção correta</p>
+                              </div>
+                            ))}
+                            <button onClick={() => addPergunta(i)}
+                              className="flex items-center gap-1.5 text-xs text-[#7ED321] font-semibold hover:underline pl-2">
+                              <Plus size={12} /> Adicionar pergunta
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              <button onClick={addModulo}
+                className="w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm text-gray-500 hover:border-[#7ED321] hover:text-[#7ED321] transition-colors flex items-center justify-center gap-2">
+                <Plus size={14} /> Adicionar módulo
+              </button>
+            </>
+          )}
+        </div>
+
+        {msg && <p className="text-xs text-red-600 px-6 pb-2">{msg}</p>}
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100">
+          <button onClick={onClose} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">Cancelar</button>
+          <button onClick={salvar} disabled={salvando}
+            className="flex-1 py-2 bg-[#7ED321] text-black text-sm font-bold rounded-lg disabled:opacity-60 flex items-center justify-center gap-2">
+            {salvando ? 'Salvando...' : <><Check size={14} /> Salvar módulos</>}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

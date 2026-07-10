@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Home, Laptop, Factory, Route, Award, ClipboardCheck,
-  Activity, MessageCircle, LayoutDashboard, Users,
+  MessageCircle, LayoutDashboard, Users,
   BarChart3, Settings, Gift, AlertTriangle, Trophy, LogOut,
-  Lightbulb, Wrench, CalendarDays, FileText, Star, UserCircle
+  Lightbulb, Wrench, CalendarDays, Star
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -19,7 +19,6 @@ const navItems = [
   { href: '/trilhas', icon: Route, label: 'Trilhas por Função' },
   { href: '/certificados', icon: Award, label: 'Certificados' },
   { href: '/avaliacoes', icon: ClipboardCheck, label: 'Avaliações' },
-  { href: '/atividades', icon: Activity, label: 'Ideia e Ação' },
   { href: '/racs', icon: AlertTriangle, label: 'RACs' },
   { href: '/conquistas', icon: Trophy, label: 'Conquistas' },
   { href: '/chat', icon: MessageCircle, label: 'Chat com IA' },
@@ -30,8 +29,8 @@ const gestorItems = [
   { href: '/colaboradores', icon: Users, label: 'Colaboradores', roles: ['gestor', 'rh', 'admin'] },
   { href: '/ideias-pendentes', icon: Lightbulb, label: 'Ideias Pendentes', roles: ['gestor', 'rh', 'admin'] },
   { href: '/pontuacao', icon: Star, label: 'Pontuação', roles: ['gestor', 'rh', 'admin'] },
-  { href: '/ponto-rh', icon: CalendarDays, label: 'Ponto & RH', roles: ['rh', 'admin'] },
-  { href: '/equipamentos-acesso', icon: Wrench, label: 'Acesso Equipamentos', roles: ['rh', 'admin'] },
+  { href: '/ponto-rh', icon: CalendarDays, label: 'Ponto & RH', roles: ['rh', 'admin', 'gestor'] },
+  { href: '/equipamentos-acesso', icon: Wrench, label: 'Acesso Equipamentos', roles: ['rh', 'admin', 'gestor'] },
   { href: '/relatorios', icon: BarChart3, label: 'Relatórios', roles: ['gestor', 'rh', 'admin'] },
   { href: '/configuracoes', icon: Settings, label: 'Configurações', roles: ['admin'] },
   { href: '/admin-usuarios', icon: Users, label: 'Gestão de Usuários', roles: ['admin', 'gestor', 'rh'] },
@@ -104,16 +103,8 @@ export function Sidebar({ role: roleProp }: { role?: string }) {
         )}
       </nav>
 
-      {/* Promo + Logout */}
-      <div className="p-2 space-y-2">
-        <div className="bg-gray-800 rounded-xl p-3 border border-gray-700">
-          <Gift size={16} className="text-[#7ED321] mb-1.5" />
-          <p className="text-xs font-semibold text-white">Indique e ganhe</p>
-          <p className="text-[10px] text-gray-400 mt-0.5 mb-2 leading-tight">Convide sua equipe e ganhe benefícios!</p>
-          <button className="w-full bg-[#7ED321] text-black text-[10px] font-bold py-1.5 rounded-lg flex items-center justify-between px-2">
-            Saiba mais <span>→</span>
-          </button>
-        </div>
+      {/* Logout only */}
+      <div className="p-2">
         <button onClick={handleLogout}
           className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-gray-400 hover:bg-gray-800 hover:text-red-400 transition-all">
           <LogOut size={14} /> Sair
