@@ -49,10 +49,12 @@ export default function PerfilPage() {
     e.preventDefault()
     setSalvando(true)
     setMensagem(null)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    const { error } = await supabase.from('profiles').update({ nome, funcao, setor }).eq('user_id', user!.id)
-    if (error) setMensagem({ tipo: 'erro', texto: 'Erro ao salvar. Tente novamente.' })
+    const res = await fetch('/api/update-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, funcao, setor }),
+    })
+    if (!res.ok) setMensagem({ tipo: 'erro', texto: 'Erro ao salvar. Tente novamente.' })
     else setMensagem({ tipo: 'sucesso', texto: 'Perfil atualizado com sucesso!' })
     setSalvando(false)
   }
