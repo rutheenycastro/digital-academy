@@ -34,8 +34,8 @@ const gestorItems = [
   { href: '/equipamentos-acesso', icon: Wrench, label: 'Acesso Equipamentos', roles: ['rh', 'admin'] },
   { href: '/relatorios', icon: BarChart3, label: 'Relatórios', roles: ['gestor', 'rh', 'admin'] },
   { href: '/configuracoes', icon: Settings, label: 'Configurações', roles: ['admin'] },
-  { href: '/admin-usuarios', icon: Users, label: 'Gestão de Usuários', roles: ['admin'] },
-  { href: '/admin-treinamentos', icon: Laptop, label: 'Gestão Treinamentos', roles: ['admin'] },
+  { href: '/admin-usuarios', icon: Users, label: 'Gestão de Usuários', roles: ['admin', 'gestor', 'rh'] },
+  { href: '/admin-treinamentos', icon: Laptop, label: 'Gestão Treinamentos', roles: ['admin', 'gestor'] },
   { href: '/admin-bonificacoes', icon: Gift, label: 'Bonificações', roles: ['admin', 'gestor', 'rh'] },
 ]
 
