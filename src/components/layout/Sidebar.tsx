@@ -23,7 +23,6 @@ const navItems = [
   { href: '/racs', icon: AlertTriangle, label: 'RACs' },
   { href: '/conquistas', icon: Trophy, label: 'Conquistas' },
   { href: '/chat', icon: MessageCircle, label: 'Chat com IA' },
-  { href: '/perfil', icon: UserCircle, label: 'Meu Perfil' },
 ]
 
 const gestorItems = [

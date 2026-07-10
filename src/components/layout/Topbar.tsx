@@ -1,5 +1,6 @@
 'use client'
 import { Bell, HelpCircle, ChevronDown, Search } from 'lucide-react'
+import Link from 'next/link'
 
 interface TopbarProps {
   nome?: string
@@ -28,7 +29,7 @@ export function Topbar({ nome = 'Usuário', funcao = '' }: TopbarProps) {
         <button className="w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100">
           <HelpCircle size={17} />
         </button>
-        <div className="flex items-center gap-2 cursor-pointer border border-gray-200 rounded-lg px-2.5 py-1.5">
+        <Link href="/perfil" className="flex items-center gap-2 cursor-pointer border border-gray-200 rounded-lg px-2.5 py-1.5 hover:border-[#7ED321] transition-colors">
           <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center text-[11px] font-bold text-[#7ED321]">
             {iniciais}
           </div>
@@ -37,7 +38,7 @@ export function Topbar({ nome = 'Usuário', funcao = '' }: TopbarProps) {
             {funcao && <div className="text-gray-500 text-[10px]">{funcao}</div>}
           </div>
           <ChevronDown size={13} className="text-gray-400" />
-        </div>
+        </Link>
       </div>
     </header>
   )
