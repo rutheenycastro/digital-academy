@@ -24,10 +24,10 @@ export function Topbar({ nome = 'Usuário', funcao = '', role }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
-        <button className="relative w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100">
+        <Link href="/notificacoes" className="relative w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#7ED321] transition-colors">
           <Bell size={17} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#7ED321]" />
-        </button>
+        </Link>
         <Link href="/chat" className="w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#7ED321] transition-colors">
           <MessageCircle size={17} />
         </Link>
