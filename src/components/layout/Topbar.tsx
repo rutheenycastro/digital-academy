@@ -1,5 +1,5 @@
 'use client'
-import { Bell, HelpCircle, ChevronDown, Search, Settings } from 'lucide-react'
+import { Bell, MessageCircle, ChevronDown, Search, Settings } from 'lucide-react'
 import Link from 'next/link'
 
 interface TopbarProps {
@@ -28,9 +28,9 @@ export function Topbar({ nome = 'Usuário', funcao = '', role }: TopbarProps) {
           <Bell size={17} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#7ED321]" />
         </button>
-        <button className="w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100">
-          <HelpCircle size={17} />
-        </button>
+        <Link href="/chat" className="w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#7ED321] transition-colors">
+          <MessageCircle size={17} />
+        </Link>
         {isAdmin && (
           <Link href="/configuracoes" className="w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#7ED321] transition-colors">
             <Settings size={17} />

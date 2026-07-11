@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Home, Laptop, Factory, Route, Award, ClipboardCheck,
-  MessageCircle, Users,
+  Users,
   BarChart3, Gift, AlertTriangle, Trophy, LogOut,
   Lightbulb, Wrench, CalendarDays, Star
 } from 'lucide-react'
@@ -21,7 +21,6 @@ const navItems = [
   { href: '/avaliacoes', icon: ClipboardCheck, label: 'Avaliações', hideForRoles: [] },
   { href: '/racs', icon: AlertTriangle, label: 'RACs', hideForRoles: [] },
   { href: '/conquistas', icon: Trophy, label: 'Conquistas', hideForRoles: [] },
-  { href: '/chat', icon: MessageCircle, label: 'Chat com IA', hideForRoles: [] },
 ]
 
 const gestorItems = [
