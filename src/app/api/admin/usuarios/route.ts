@@ -14,7 +14,7 @@ async function checkAccess() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const { data: profile } = await adminClient().from('profiles').select('role').eq('user_id', user.id).single()
-  if (!['admin', 'gestor', 'rh'].includes(profile?.role)) return null
+  if (!profile || !['admin', 'gestor', 'rh'].includes(profile.role)) return null
   return { user, role: profile.role as string }
 }
 
