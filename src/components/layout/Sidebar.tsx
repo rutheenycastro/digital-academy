@@ -13,15 +13,15 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 const navItems = [
-  { href: '/inicio', icon: Home, label: 'Início' },
-  { href: '/treinamentos', icon: Laptop, label: 'Meus Treinamentos' },
-  { href: '/biblioteca', icon: Factory, label: 'Biblioteca de Máquinas' },
-  { href: '/trilhas', icon: Route, label: 'Trilhas por Função' },
-  { href: '/certificados', icon: Award, label: 'Certificados' },
-  { href: '/avaliacoes', icon: ClipboardCheck, label: 'Avaliações' },
-  { href: '/racs', icon: AlertTriangle, label: 'RACs' },
-  { href: '/conquistas', icon: Trophy, label: 'Conquistas' },
-  { href: '/chat', icon: MessageCircle, label: 'Chat com IA' },
+  { href: '/inicio', icon: Home, label: 'Início', hideForRoles: [] },
+  { href: '/treinamentos', icon: Laptop, label: 'Meus Treinamentos', hideForRoles: ['admin', 'gestor', 'rh'] },
+  { href: '/biblioteca', icon: Factory, label: 'Biblioteca de Máquinas', hideForRoles: ['admin', 'gestor', 'rh'] },
+  { href: '/trilhas', icon: Route, label: 'Trilhas por Função', hideForRoles: [] },
+  { href: '/certificados', icon: Award, label: 'Certificados', hideForRoles: [] },
+  { href: '/avaliacoes', icon: ClipboardCheck, label: 'Avaliações', hideForRoles: [] },
+  { href: '/racs', icon: AlertTriangle, label: 'RACs', hideForRoles: [] },
+  { href: '/conquistas', icon: Trophy, label: 'Conquistas', hideForRoles: [] },
+  { href: '/chat', icon: MessageCircle, label: 'Chat com IA', hideForRoles: [] },
 ]
 
 const gestorItems = [
@@ -77,7 +77,7 @@ export function Sidebar({ role: roleProp }: { role?: string }) {
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ href, icon: Icon, label }) => (
+        {navItems.filter(item => !item.hideForRoles.includes(role)).map(({ href, icon: Icon, label }) => (
           <Link key={href} href={href}
             className={cn('flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all',
               pathname === href ? 'bg-[#7ED321] text-black font-semibold' : 'text-gray-400 hover:bg-gray-800 hover:text-gray-100'
