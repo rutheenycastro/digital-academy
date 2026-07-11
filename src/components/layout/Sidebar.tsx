@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import {
   Home, Laptop, Factory, Route, Award, ClipboardCheck,
   MessageCircle, Users,
-  BarChart3, Settings, Gift, AlertTriangle, Trophy, LogOut,
+  BarChart3, Gift, AlertTriangle, Trophy, LogOut,
   Lightbulb, Wrench, CalendarDays, Star
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -31,7 +31,6 @@ const gestorItems = [
   { href: '/ponto-rh', icon: CalendarDays, label: 'Ponto & RH', roles: ['rh', 'admin', 'gestor'] },
   { href: '/equipamentos-acesso', icon: Wrench, label: 'Acesso Equipamentos', roles: ['rh', 'admin', 'gestor'] },
   { href: '/relatorios', icon: BarChart3, label: 'Relatórios', roles: ['gestor', 'rh', 'admin'] },
-  { href: '/configuracoes', icon: Settings, label: 'Configurações', roles: ['admin'] },
   { href: '/admin-usuarios', icon: Users, label: 'Gestão de Usuários', roles: ['admin', 'gestor', 'rh'] },
   { href: '/admin-treinamentos', icon: Laptop, label: 'Gestão Treinamentos', roles: ['admin', 'gestor'] },
   { href: '/admin-bonificacoes', icon: Gift, label: 'Bonificações', roles: ['admin', 'gestor', 'rh'] },

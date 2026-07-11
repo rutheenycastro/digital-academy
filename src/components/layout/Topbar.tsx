@@ -1,14 +1,16 @@
 'use client'
-import { Bell, HelpCircle, ChevronDown, Search } from 'lucide-react'
+import { Bell, HelpCircle, ChevronDown, Search, Settings } from 'lucide-react'
 import Link from 'next/link'
 
 interface TopbarProps {
   nome?: string
   funcao?: string
+  role?: string
 }
 
-export function Topbar({ nome = 'Usuário', funcao = '' }: TopbarProps) {
+export function Topbar({ nome = 'Usuário', funcao = '', role }: TopbarProps) {
   const iniciais = nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+  const isAdmin = role === 'admin'
 
   return (
     <header className="h-13 bg-white border-b border-gray-200 flex items-center gap-3 px-5 flex-shrink-0">
@@ -29,6 +31,11 @@ export function Topbar({ nome = 'Usuário', funcao = '' }: TopbarProps) {
         <button className="w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100">
           <HelpCircle size={17} />
         </button>
+        {isAdmin && (
+          <Link href="/configuracoes" className="w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#7ED321] transition-colors">
+            <Settings size={17} />
+          </Link>
+        )}
         <Link href="/perfil" className="flex items-center gap-2 cursor-pointer border border-gray-200 rounded-lg px-2.5 py-1.5 hover:border-[#7ED321] transition-colors">
           <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center text-[11px] font-bold text-[#7ED321]">
             {iniciais}
