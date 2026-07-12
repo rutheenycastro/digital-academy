@@ -41,9 +41,9 @@ export async function POST(req: Request) {
   })
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 })
 
-  await adminClient().from('profiles').insert({
+  await adminClient().from('profiles').upsert({
     user_id: authData.user.id, nome, email, funcao, setor, role: targetRole, pontos: 0
-  })
+  }, { onConflict: 'user_id' })
 
   return NextResponse.json({ success: true })
 }
