@@ -1,6 +1,6 @@
 ﻿'use client'
-import { useState, useEffect } from 'react'
-import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star, Video, ChevronDown, ChevronUp, GripVertical, HelpCircle, Image, ExternalLink } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star, Video, ChevronDown, ChevronUp, GripVertical, HelpCircle, Image, Upload, Loader2 } from 'lucide-react'
 
 type Treinamento = { id: string; titulo: string; categoria: string; carga_horaria: number; pontos_conclusao: number; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; capa_url?: string; modulos?: Modulo[] }
 type Modulo = { id?: string; titulo: string; video_url: string; descricao: string; ordem: number; tem_avaliacao: boolean; perguntas?: Pergunta[] }
@@ -13,22 +13,8 @@ const categorias = ['Segurança', 'Qualidade', 'Operações', 'Gestão', 'Compli
 function emptyModulo(ordem: number): Modulo {
   return { titulo: '', video_url: '', descricao: '', ordem, tem_avaliacao: false, perguntas: [] }
 }
-
 function emptyPergunta(): Pergunta {
   return { texto: '', opcoes: ['', '', '', ''], resposta_correta: 0 }
-}
-
-function getYoutubeThumbnail(url: string): string | null {
-  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
-  return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null
-}
-
-function resolveCapaUrl(url: string): string | null {
-  if (!url) return null
-  const yt = getYoutubeThumbnail(url)
-  if (yt) return yt
-  if (url.startsWith('http')) return url
-  return null
 }
 
 export default function AdminTreinamentosPage() {
@@ -40,6 +26,8 @@ export default function AdminTreinamentosPage() {
   const [form, setForm] = useState<Form>(emptyForm)
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   async function carregar() {
     const res = await fetch('/api/admin/treinamentos')
@@ -58,6 +46,20 @@ export default function AdminTreinamentosPage() {
   }
   function abrirExcluir(t: Treinamento) { setSelecionado(t); setModal('excluir') }
   function abrirModulos(t: Treinamento) { setSelecionado(t); setModal('modulos') }
+
+  async function handleUploadCapa(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/admin/treinamentos/upload', { method: 'POST', body: fd })
+    const data = await res.json()
+    if (res.ok) setForm(f => ({ ...f, capa_url: data.url }))
+    else setMsg(data.error ?? 'Erro ao fazer upload da imagem.')
+    setUploading(false)
+    if (fileRef.current) fileRef.current.value = ''
+  }
 
   async function salvar() {
     setSalvando(true); setMsg('')
@@ -80,8 +82,6 @@ export default function AdminTreinamentosPage() {
   }
 
   const filtrados = treinamentos.filter(t => t.titulo?.toLowerCase().includes(busca.toLowerCase()) || t.categoria?.toLowerCase().includes(busca.toLowerCase()))
-
-  const capaPreview = resolveCapaUrl(form.capa_url)
 
   return (
     <div>
@@ -113,53 +113,48 @@ export default function AdminTreinamentosPage() {
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr><td colSpan={8} className="text-center py-8 text-sm text-gray-400">Carregando...</td></tr>
-            ) : filtrados.map(t => {
-              const thumb = resolveCapaUrl(t.capa_url ?? '')
-              return (
-                <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    {thumb ? (
-                      <img src={thumb} alt={t.titulo} className="w-14 h-10 object-cover rounded-lg border border-gray-100" />
-                    ) : (
-                      <div className="w-14 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <Image size={14} className="text-gray-300" />
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-gray-900 max-w-[180px]">
-                    <span className="truncate block">{t.titulo}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{t.categoria || '—'}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => abrirModulos(t)}
-                      className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold">
-                      <Video size={12} />
-                      {(t.modulos?.length ?? 0)} módulos
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="flex items-center gap-1 text-xs text-gray-600"><Clock size={11} /> {t.carga_horaria}h</span>
-                  </td>
-                  <td className="px-4 py-3 text-[#7ED321] font-semibold text-xs">
-                    <span className="flex items-center gap-1"><Star size={11} /> {t.pontos_conclusao?.toLocaleString('pt-BR')}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${t.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                      {t.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => abrirModulos(t)} title="Módulos e vídeos" className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-500"><Video size={13} /></button>
-                      <button onClick={() => abrirEditar(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#7ED321]"><Pencil size={13} /></button>
-                      <button onClick={() => abrirExcluir(t)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500"><Trash2 size={13} /></button>
+            ) : filtrados.map(t => (
+              <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3">
+                  {t.capa_url ? (
+                    <img src={t.capa_url} alt={t.titulo} className="w-16 h-10 object-cover rounded-lg border border-gray-100" />
+                  ) : (
+                    <div className="w-16 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <Image size={14} className="text-gray-300" />
                     </div>
-                  </td>
-                </tr>
-              )
-            })}
+                  )}
+                </td>
+                <td className="px-4 py-3 font-semibold text-gray-900 max-w-[180px]">
+                  <span className="truncate block">{t.titulo}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{t.categoria || '—'}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <button onClick={() => abrirModulos(t)} className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold">
+                    <Video size={12} />{(t.modulos?.length ?? 0)} módulos
+                  </button>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="flex items-center gap-1 text-xs text-gray-600"><Clock size={11} /> {t.carga_horaria}h</span>
+                </td>
+                <td className="px-4 py-3 text-[#7ED321] font-semibold text-xs">
+                  <span className="flex items-center gap-1"><Star size={11} /> {t.pontos_conclusao?.toLocaleString('pt-BR')}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${t.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {t.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => abrirModulos(t)} title="Módulos e vídeos" className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-500"><Video size={13} /></button>
+                    <button onClick={() => abrirEditar(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#7ED321]"><Pencil size={13} /></button>
+                    <button onClick={() => abrirExcluir(t)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500"><Trash2 size={13} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -172,32 +167,49 @@ export default function AdminTreinamentosPage() {
               <h2 className="text-base font-bold text-gray-900">{modal === 'criar' ? 'Novo treinamento' : 'Editar treinamento'}</h2>
               <button onClick={() => setModal(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
             </div>
+
             <div className="space-y-3">
-              {/* Capa */}
+              {/* Upload de capa */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1"><Image size={12} /> Capa do treinamento</label>
-                <input value={form.capa_url} onChange={e => setForm(f => ({ ...f, capa_url: e.target.value }))}
-                  placeholder="URL da imagem ou link do YouTube (thumbnail automático)"
-                  className="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm outline-none focus:border-[#7ED321]" />
-                {capaPreview ? (
-                  <div className="mt-2 relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-                    <img src={capaPreview} alt="Preview da capa" className="w-full h-36 object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                    <div className="absolute top-2 right-2">
-                      <a href={form.capa_url} target="_blank" rel="noreferrer" className="bg-black/50 text-white rounded-lg p-1.5 flex items-center gap-1 text-[10px] hover:bg-black/70">
-                        <ExternalLink size={10} /> Ver original
-                      </a>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1">
+                  <Image size={12} /> Capa do treinamento
+                </label>
+
+                {form.capa_url ? (
+                  <div className="relative rounded-xl overflow-hidden border border-gray-200 group">
+                    <img src={form.capa_url} alt="Capa" className="w-full h-40 object-cover" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                      <button onClick={() => fileRef.current?.click()}
+                        className="bg-white text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-gray-100">
+                        <Upload size={12} /> Trocar imagem
+                      </button>
+                      <button onClick={() => setForm(f => ({ ...f, capa_url: '' }))}
+                        className="bg-red-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-red-600">
+                        <Trash2 size={12} /> Remover
+                      </button>
                     </div>
-                    {getYoutubeThumbnail(form.capa_url) && (
-                      <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full">
-                        Thumbnail do YouTube detectado
-                      </div>
-                    )}
                   </div>
-                ) : form.capa_url ? (
-                  <p className="text-[11px] text-red-500 mt-1">URL inválida ou imagem não encontrada</p>
                 ) : (
-                  <p className="text-[11px] text-gray-400 mt-1">Cole um link de imagem (jpg, png) ou um link do YouTube para gerar a capa automaticamente</p>
+                  <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                    className="w-full h-36 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-[#7ED321] hover:bg-green-50/50 transition-colors group disabled:opacity-60">
+                    {uploading ? (
+                      <>
+                        <Loader2 size={22} className="text-[#7ED321] animate-spin" />
+                        <span className="text-xs text-gray-500">Enviando imagem...</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-gray-100 group-hover:bg-[#7ED321]/10 flex items-center justify-center transition-colors">
+                          <Upload size={18} className="text-gray-400 group-hover:text-[#7ED321]" />
+                        </div>
+                        <span className="text-xs font-medium text-gray-500 group-hover:text-[#7ED321]">Clique para adicionar uma capa</span>
+                        <span className="text-[10px] text-gray-400">JPG, PNG ou WEBP · Max 5MB</span>
+                      </>
+                    )}
+                  </button>
                 )}
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp"
+                  onChange={handleUploadCapa} className="hidden" />
               </div>
 
               <div>
@@ -245,9 +257,10 @@ export default function AdminTreinamentosPage() {
               )}
               {msg && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{msg}</p>}
             </div>
+
             <div className="flex gap-2 mt-5">
               <button onClick={() => setModal(null)} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
-              <button onClick={salvar} disabled={salvando} className="flex-1 py-2 bg-[#7ED321] text-black text-sm font-bold rounded-lg disabled:opacity-60 flex items-center justify-center gap-1.5">
+              <button onClick={salvar} disabled={salvando || uploading} className="flex-1 py-2 bg-[#7ED321] text-black text-sm font-bold rounded-lg disabled:opacity-60 flex items-center justify-center gap-1.5">
                 {salvando ? 'Salvando...' : <><Check size={14} /> Salvar</>}
               </button>
             </div>
@@ -299,46 +312,26 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
     setModulos(prev => [...prev, emptyModulo(prev.length + 1)])
     setExpandido(modulos.length)
   }
-
   function updateModulo(i: number, campo: keyof Modulo, valor: unknown) {
     setModulos(prev => prev.map((m, idx) => idx === i ? { ...m, [campo]: valor } : m))
   }
-
   function removeModulo(i: number) {
     setModulos(prev => prev.filter((_, idx) => idx !== i).map((m, idx) => ({ ...m, ordem: idx + 1 })))
     setExpandido(null)
   }
-
   function addPergunta(iMod: number) {
-    setModulos(prev => prev.map((m, idx) => idx === iMod
-      ? { ...m, perguntas: [...(m.perguntas ?? []), emptyPergunta()] }
-      : m
-    ))
+    setModulos(prev => prev.map((m, idx) => idx === iMod ? { ...m, perguntas: [...(m.perguntas ?? []), emptyPergunta()] } : m))
   }
-
   function updatePergunta(iMod: number, iPerg: number, campo: keyof Pergunta, valor: unknown) {
     setModulos(prev => prev.map((m, idx) => idx === iMod
-      ? { ...m, perguntas: (m.perguntas ?? []).map((p, pi) => pi === iPerg ? { ...p, [campo]: valor } : p) }
-      : m
-    ))
+      ? { ...m, perguntas: (m.perguntas ?? []).map((p, pi) => pi === iPerg ? { ...p, [campo]: valor } : p) } : m))
   }
-
   function updateOpcao(iMod: number, iPerg: number, iOpc: number, valor: string) {
     setModulos(prev => prev.map((m, idx) => idx === iMod
-      ? {
-          ...m, perguntas: (m.perguntas ?? []).map((p, pi) => pi === iPerg
-            ? { ...p, opcoes: p.opcoes.map((o, oi) => oi === iOpc ? valor : o) }
-            : p)
-        }
-      : m
-    ))
+      ? { ...m, perguntas: (m.perguntas ?? []).map((p, pi) => pi === iPerg ? { ...p, opcoes: p.opcoes.map((o, oi) => oi === iOpc ? valor : o) } : p) } : m))
   }
-
   function removePergunta(iMod: number, iPerg: number) {
-    setModulos(prev => prev.map((m, idx) => idx === iMod
-      ? { ...m, perguntas: (m.perguntas ?? []).filter((_, pi) => pi !== iPerg) }
-      : m
-    ))
+    setModulos(prev => prev.map((m, idx) => idx === iMod ? { ...m, perguntas: (m.perguntas ?? []).filter((_, pi) => pi !== iPerg) } : m))
   }
 
   async function salvar() {
@@ -363,7 +356,6 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
         </div>
-
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
           {loading ? <p className="text-sm text-gray-400 text-center py-8">Carregando...</p> : (
             <>
@@ -380,7 +372,6 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
                     </button>
                     <button onClick={() => removeModulo(i)} className="text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
                   </div>
-
                   {expandido === i && (
                     <div className="px-4 py-4 space-y-3">
                       <div>
@@ -389,9 +380,7 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
                           placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
                           className="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm outline-none focus:border-[#7ED321]" />
                         {m.video_url && (
-                          <a href={m.video_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-500 hover:underline mt-1 inline-block">
-                            Testar link →
-                          </a>
+                          <a href={m.video_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-500 hover:underline mt-1 inline-block">Testar link →</a>
                         )}
                       </div>
                       <div>
@@ -405,7 +394,6 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
                           <input type="checkbox" checked={m.tem_avaliacao} onChange={e => updateModulo(i, 'tem_avaliacao', e.target.checked)} className="w-4 h-4 accent-[#7ED321]" />
                           <span className="text-sm font-medium text-gray-700">Este módulo tem avaliação</span>
                         </label>
-
                         {m.tem_avaliacao && (
                           <div className="space-y-3 pl-2 border-l-2 border-[#7ED321]/30">
                             <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1"><HelpCircle size={11} /> Perguntas da avaliação</p>
@@ -422,19 +410,16 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
                                   {p.opcoes.map((opc, oi) => (
                                     <label key={oi} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${p.resposta_correta === oi ? 'border-[#7ED321] bg-green-50' : 'border-gray-200'}`}>
                                       <input type="radio" name={`resp-${i}-${pi}`} checked={p.resposta_correta === oi}
-                                        onChange={() => updatePergunta(i, pi, 'resposta_correta', oi)}
-                                        className="accent-[#7ED321] flex-shrink-0" />
+                                        onChange={() => updatePergunta(i, pi, 'resposta_correta', oi)} className="accent-[#7ED321] flex-shrink-0" />
                                       <input value={opc} onChange={e => updateOpcao(i, pi, oi, e.target.value)}
-                                        placeholder={`Opção ${oi + 1}`}
-                                        className="text-xs text-gray-700 bg-transparent outline-none w-full" />
+                                        placeholder={`Opção ${oi + 1}`} className="text-xs text-gray-700 bg-transparent outline-none w-full" />
                                     </label>
                                   ))}
                                 </div>
                                 <p className="text-[10px] text-gray-400 pl-7">Selecione o círculo da opção correta</p>
                               </div>
                             ))}
-                            <button onClick={() => addPergunta(i)}
-                              className="flex items-center gap-1.5 text-xs text-[#7ED321] font-semibold hover:underline pl-2">
+                            <button onClick={() => addPergunta(i)} className="flex items-center gap-1.5 text-xs text-[#7ED321] font-semibold hover:underline pl-2">
                               <Plus size={12} /> Adicionar pergunta
                             </button>
                           </div>
@@ -444,7 +429,6 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
                   )}
                 </div>
               ))}
-
               <button onClick={addModulo}
                 className="w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm text-gray-500 hover:border-[#7ED321] hover:text-[#7ED321] transition-colors flex items-center justify-center gap-2">
                 <Plus size={14} /> Adicionar módulo
@@ -452,7 +436,6 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
             </>
           )}
         </div>
-
         {msg && <p className="text-xs text-red-600 px-6 pb-2">{msg}</p>}
         <div className="flex gap-3 px-6 py-4 border-t border-gray-100">
           <button onClick={onClose} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">Cancelar</button>
