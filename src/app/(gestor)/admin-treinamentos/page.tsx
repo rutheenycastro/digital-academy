@@ -1,9 +1,10 @@
 ﻿'use client'
 import { useState, useEffect, useRef } from 'react'
-import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star, Video, ChevronDown, ChevronUp, GripVertical, HelpCircle, Image, Upload, Loader2 } from 'lucide-react'
+import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star, Video, ChevronDown, ChevronUp, GripVertical, HelpCircle, Image, Upload, Loader2, Link2 } from 'lucide-react'
 
+type Video = { titulo: string; url: string }
 type Treinamento = { id: string; titulo: string; categoria: string; carga_horaria: number; pontos_conclusao: number; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; capa_url?: string; modulos?: Modulo[] }
-type Modulo = { id?: string; titulo: string; video_url: string; descricao: string; ordem: number; tem_avaliacao: boolean; perguntas?: Pergunta[] }
+type Modulo = { id?: string; titulo: string; videos: Video[]; descricao: string; ordem: number; tem_avaliacao: boolean; perguntas?: Pergunta[] }
 type Pergunta = { id?: string; texto: string; opcoes: string[]; resposta_correta: number }
 type Form = { titulo: string; categoria: string; carga_horaria: string; pontos_conclusao: string; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; capa_url: string }
 
@@ -11,7 +12,7 @@ const emptyForm: Form = { titulo: '', categoria: '', carga_horaria: '1', pontos_
 const categorias = ['Segurança', 'Qualidade', 'Operações', 'Gestão', 'Compliance', 'Tecnologia', 'RH', 'Financeiro', 'Equipamentos', 'Outros']
 
 function emptyModulo(ordem: number): Modulo {
-  return { titulo: '', video_url: '', descricao: '', ordem, tem_avaliacao: false, perguntas: [] }
+  return { titulo: '', videos: [{ titulo: '', url: '' }], descricao: '', ordem, tem_avaliacao: false, perguntas: [] }
 }
 function emptyPergunta(): Pergunta {
   return { texto: '', opcoes: ['', '', '', ''], resposta_correta: 0 }
@@ -167,21 +168,18 @@ export default function AdminTreinamentosPage() {
               <h2 className="text-base font-bold text-gray-900">{modal === 'criar' ? 'Novo treinamento' : 'Editar treinamento'}</h2>
               <button onClick={() => setModal(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
             </div>
-
             <div className="space-y-3">
-              {/* Upload de capa */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1">
                   <Image size={12} /> Capa do treinamento
                 </label>
-
                 {form.capa_url ? (
                   <div className="relative rounded-xl overflow-hidden border border-gray-200 group">
                     <img src={form.capa_url} alt="Capa" className="w-full h-40 object-cover" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                       <button onClick={() => fileRef.current?.click()}
                         className="bg-white text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-gray-100">
-                        <Upload size={12} /> Trocar imagem
+                        <Upload size={12} /> Trocar
                       </button>
                       <button onClick={() => setForm(f => ({ ...f, capa_url: '' }))}
                         className="bg-red-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-red-600">
@@ -193,10 +191,7 @@ export default function AdminTreinamentosPage() {
                   <button onClick={() => fileRef.current?.click()} disabled={uploading}
                     className="w-full h-36 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-[#7ED321] hover:bg-green-50/50 transition-colors group disabled:opacity-60">
                     {uploading ? (
-                      <>
-                        <Loader2 size={22} className="text-[#7ED321] animate-spin" />
-                        <span className="text-xs text-gray-500">Enviando imagem...</span>
-                      </>
+                      <><Loader2 size={22} className="text-[#7ED321] animate-spin" /><span className="text-xs text-gray-500">Enviando...</span></>
                     ) : (
                       <>
                         <div className="w-10 h-10 rounded-xl bg-gray-100 group-hover:bg-[#7ED321]/10 flex items-center justify-center transition-colors">
@@ -208,10 +203,8 @@ export default function AdminTreinamentosPage() {
                     )}
                   </button>
                 )}
-                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp"
-                  onChange={handleUploadCapa} className="hidden" />
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUploadCapa} className="hidden" />
               </div>
-
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
                 <input value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ex: Treinamento Impressora UV"
@@ -257,7 +250,6 @@ export default function AdminTreinamentosPage() {
               )}
               {msg && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{msg}</p>}
             </div>
-
             <div className="flex gap-2 mt-5">
               <button onClick={() => setModal(null)} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
               <button onClick={salvar} disabled={salvando || uploading} className="flex-1 py-2 bg-[#7ED321] text-black text-sm font-bold rounded-lg disabled:opacity-60 flex items-center justify-center gap-1.5">
@@ -276,7 +268,7 @@ export default function AdminTreinamentosPage() {
               <AlertTriangle size={22} className="text-red-500" />
             </div>
             <h2 className="text-base font-bold text-gray-900 mb-1">Excluir treinamento</h2>
-            <p className="text-sm text-gray-500 mb-5">Tem certeza que deseja excluir <strong>{selecionado?.titulo}</strong>? Todos os módulos e avaliações serão removidos.</p>
+            <p className="text-sm text-gray-500 mb-5">Tem certeza que deseja excluir <strong>{selecionado?.titulo}</strong>?</p>
             <div className="flex gap-2">
               <button onClick={() => setModal(null)} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">Cancelar</button>
               <button onClick={excluir} disabled={salvando} className="flex-1 py-2 bg-red-500 text-white text-sm font-bold rounded-lg disabled:opacity-60">
@@ -287,7 +279,6 @@ export default function AdminTreinamentosPage() {
         </div>
       )}
 
-      {/* Modal módulos */}
       {modal === 'modulos' && selecionado && (
         <ModulosModal treinamento={selecionado} onClose={() => { setModal(null); carregar() }} />
       )}
@@ -309,29 +300,70 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
   }, [treinamento.id])
 
   function addModulo() {
-    setModulos(prev => [...prev, emptyModulo(prev.length + 1)])
+    const novo = emptyModulo(modulos.length + 1)
+    setModulos(prev => [...prev, novo])
     setExpandido(modulos.length)
   }
+
   function updateModulo(i: number, campo: keyof Modulo, valor: unknown) {
     setModulos(prev => prev.map((m, idx) => idx === i ? { ...m, [campo]: valor } : m))
   }
+
   function removeModulo(i: number) {
     setModulos(prev => prev.filter((_, idx) => idx !== i).map((m, idx) => ({ ...m, ordem: idx + 1 })))
     setExpandido(null)
   }
-  function addPergunta(iMod: number) {
-    setModulos(prev => prev.map((m, idx) => idx === iMod ? { ...m, perguntas: [...(m.perguntas ?? []), emptyPergunta()] } : m))
+
+  function addVideo(iMod: number) {
+    setModulos(prev => prev.map((m, idx) => idx === iMod
+      ? { ...m, videos: [...m.videos, { titulo: '', url: '' }] }
+      : m
+    ))
   }
+
+  function updateVideo(iMod: number, iVid: number, campo: keyof Video, valor: string) {
+    setModulos(prev => prev.map((m, idx) => idx === iMod
+      ? { ...m, videos: m.videos.map((v, vi) => vi === iVid ? { ...v, [campo]: valor } : v) }
+      : m
+    ))
+  }
+
+  function removeVideo(iMod: number, iVid: number) {
+    setModulos(prev => prev.map((m, idx) => idx === iMod
+      ? { ...m, videos: m.videos.filter((_, vi) => vi !== iVid) }
+      : m
+    ))
+  }
+
+  function addPergunta(iMod: number) {
+    setModulos(prev => prev.map((m, idx) => idx === iMod
+      ? { ...m, perguntas: [...(m.perguntas ?? []), emptyPergunta()] }
+      : m
+    ))
+  }
+
   function updatePergunta(iMod: number, iPerg: number, campo: keyof Pergunta, valor: unknown) {
     setModulos(prev => prev.map((m, idx) => idx === iMod
-      ? { ...m, perguntas: (m.perguntas ?? []).map((p, pi) => pi === iPerg ? { ...p, [campo]: valor } : p) } : m))
+      ? { ...m, perguntas: (m.perguntas ?? []).map((p, pi) => pi === iPerg ? { ...p, [campo]: valor } : p) }
+      : m
+    ))
   }
+
   function updateOpcao(iMod: number, iPerg: number, iOpc: number, valor: string) {
     setModulos(prev => prev.map((m, idx) => idx === iMod
-      ? { ...m, perguntas: (m.perguntas ?? []).map((p, pi) => pi === iPerg ? { ...p, opcoes: p.opcoes.map((o, oi) => oi === iOpc ? valor : o) } : p) } : m))
+      ? { ...m, perguntas: (m.perguntas ?? []).map((p, pi) => pi === iPerg
+          ? { ...p, opcoes: p.opcoes.map((o, oi) => oi === iOpc ? valor : o) }
+          : p)
+        }
+      : m
+    ))
   }
+
   function removePergunta(iMod: number, iPerg: number) {
-    setModulos(prev => prev.map((m, idx) => idx === iMod ? { ...m, perguntas: (m.perguntas ?? []).filter((_, pi) => pi !== iPerg) } : m))
+    setModulos(prev => prev.map((m, idx) => idx === iMod
+      ? { ...m, perguntas: (m.perguntas ?? []).filter((_, pi) => pi !== iPerg) }
+      : m
+    ))
   }
 
   async function salvar() {
@@ -356,47 +388,93 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
         </div>
+
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
           {loading ? <p className="text-sm text-gray-400 text-center py-8">Carregando...</p> : (
             <>
               {modulos.map((m, i) => (
                 <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
+                  {/* Header do módulo */}
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50">
                     <GripVertical size={14} className="text-gray-400 flex-shrink-0" />
                     <div className="w-6 h-6 rounded-full bg-gray-900 text-[#7ED321] text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</div>
                     <input value={m.titulo} onChange={e => updateModulo(i, 'titulo', e.target.value)}
                       placeholder={`Módulo ${i + 1} — ex: Introdução à Impressora UV`}
                       className="flex-1 text-sm font-semibold text-gray-900 bg-transparent outline-none placeholder-gray-400" />
+                    <span className="text-[10px] text-gray-400 flex-shrink-0">{m.videos.length} vídeo{m.videos.length !== 1 ? 's' : ''}</span>
                     <button onClick={() => setExpandido(expandido === i ? null : i)} className="text-gray-400 hover:text-gray-600">
                       {expandido === i ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>
                     <button onClick={() => removeModulo(i)} className="text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
                   </div>
+
                   {expandido === i && (
-                    <div className="px-4 py-4 space-y-3">
+                    <div className="px-4 py-4 space-y-4">
+
+                      {/* Seção de vídeos */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1"><Video size={12} /> Link do vídeo</label>
-                        <input value={m.video_url} onChange={e => updateModulo(i, 'video_url', e.target.value)}
-                          placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
-                          className="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm outline-none focus:border-[#7ED321]" />
-                        {m.video_url && (
-                          <a href={m.video_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-500 hover:underline mt-1 inline-block">Testar link →</a>
-                        )}
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                            <Video size={12} className="text-[#7ED321]" /> Vídeos do módulo
+                          </label>
+                          <button onClick={() => addVideo(i)}
+                            className="flex items-center gap-1 text-[11px] text-[#7ED321] font-semibold hover:underline">
+                            <Plus size={11} /> Adicionar vídeo
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {m.videos.map((v, vi) => (
+                            <div key={vi} className="bg-gray-50 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-gray-400 w-5 text-center flex-shrink-0">{vi + 1}</span>
+                                <input value={v.titulo} onChange={e => updateVideo(i, vi, 'titulo', e.target.value)}
+                                  placeholder="Título do vídeo (opcional)"
+                                  className="flex-1 h-8 border border-gray-200 rounded-lg px-2.5 text-xs outline-none focus:border-[#7ED321] bg-white" />
+                                {m.videos.length > 1 && (
+                                  <button onClick={() => removeVideo(i, vi)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+                                    <Trash2 size={12} />
+                                  </button>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 pl-7">
+                                <Link2 size={12} className="text-gray-400 flex-shrink-0" />
+                                <input value={v.url} onChange={e => updateVideo(i, vi, 'url', e.target.value)}
+                                  placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
+                                  className="flex-1 h-8 border border-gray-200 rounded-lg px-2.5 text-xs outline-none focus:border-[#7ED321] bg-white" />
+                              </div>
+                              {v.url && (
+                                <div className="pl-7">
+                                  <a href={v.url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-500 hover:underline">
+                                    Testar link →
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
+
+                      {/* Descrição */}
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Descrição (opcional)</label>
                         <textarea value={m.descricao} onChange={e => updateModulo(i, 'descricao', e.target.value)}
                           placeholder="O que o colaborador vai aprender neste módulo..."
                           rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#7ED321] resize-none" />
                       </div>
-                      <div>
-                        <label className="flex items-center gap-2 cursor-pointer mb-3">
+
+                      {/* Avaliação — separada no final */}
+                      <div className="border-t border-gray-100 pt-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
                           <input type="checkbox" checked={m.tem_avaliacao} onChange={e => updateModulo(i, 'tem_avaliacao', e.target.checked)} className="w-4 h-4 accent-[#7ED321]" />
-                          <span className="text-sm font-medium text-gray-700">Este módulo tem avaliação</span>
+                          <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                            <HelpCircle size={14} className="text-[#7ED321]" /> Avaliação ao final do módulo
+                          </span>
                         </label>
+
                         {m.tem_avaliacao && (
-                          <div className="space-y-3 pl-2 border-l-2 border-[#7ED321]/30">
-                            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1"><HelpCircle size={11} /> Perguntas da avaliação</p>
+                          <div className="mt-3 space-y-3 pl-2 border-l-2 border-[#7ED321]/30">
+                            <p className="text-[11px] text-gray-500">O colaborador responde essas perguntas após assistir todos os vídeos.</p>
                             {(m.perguntas ?? []).map((p, pi) => (
                               <div key={pi} className="bg-gray-50 rounded-xl p-3 space-y-2">
                                 <div className="flex items-start gap-2">
@@ -419,16 +497,19 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
                                 <p className="text-[10px] text-gray-400 pl-7">Selecione o círculo da opção correta</p>
                               </div>
                             ))}
-                            <button onClick={() => addPergunta(i)} className="flex items-center gap-1.5 text-xs text-[#7ED321] font-semibold hover:underline pl-2">
+                            <button onClick={() => addPergunta(i)}
+                              className="flex items-center gap-1.5 text-xs text-[#7ED321] font-semibold hover:underline pl-2">
                               <Plus size={12} /> Adicionar pergunta
                             </button>
                           </div>
                         )}
                       </div>
+
                     </div>
                   )}
                 </div>
               ))}
+
               <button onClick={addModulo}
                 className="w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm text-gray-500 hover:border-[#7ED321] hover:text-[#7ED321] transition-colors flex items-center justify-center gap-2">
                 <Plus size={14} /> Adicionar módulo
@@ -436,6 +517,7 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
             </>
           )}
         </div>
+
         {msg && <p className="text-xs text-red-600 px-6 pb-2">{msg}</p>}
         <div className="flex gap-3 px-6 py-4 border-t border-gray-100">
           <button onClick={onClose} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">Cancelar</button>

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+﻿import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 
@@ -18,7 +18,6 @@ async function checkAccess() {
   return user
 }
 
-// GET: lista módulos de um treinamento
 export async function GET(req: Request) {
   const user = await checkAccess()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -33,26 +32,31 @@ export async function GET(req: Request) {
     .eq('treinamento_id', treinamento_id)
     .order('ordem')
 
-  // Mapeia para o formato do frontend
-  const result = (modulos ?? []).map(m => ({
-    id: m.id,
-    titulo: m.titulo,
-    video_url: m.video_url,
-    descricao: m.descricao ?? '',
-    ordem: m.ordem,
-    tem_avaliacao: m.tem_avaliacao,
-    perguntas: (m.perguntas_avaliacao ?? []).map((p: { id: string; texto: string; opcoes: string[]; resposta_correta: number }) => ({
-      id: p.id,
-      texto: p.texto,
-      opcoes: p.opcoes,
-      resposta_correta: p.resposta_correta
-    }))
-  }))
+  const result = (modulos ?? []).map(m => {
+    // Compatibilidade: se ainda tem video_url mas não tem videos[], migra
+    let videos: { titulo: string; url: string }[] = Array.isArray(m.videos) && m.videos.length > 0
+      ? m.videos
+      : m.video_url ? [{ titulo: '', url: m.video_url }] : []
+
+    return {
+      id: m.id,
+      titulo: m.titulo,
+      videos,
+      descricao: m.descricao ?? '',
+      ordem: m.ordem,
+      tem_avaliacao: m.tem_avaliacao,
+      perguntas: (m.perguntas_avaliacao ?? []).map((p: { id: string; texto: string; opcoes: string[]; resposta_correta: number }) => ({
+        id: p.id,
+        texto: p.texto,
+        opcoes: p.opcoes,
+        resposta_correta: p.resposta_correta
+      }))
+    }
+  })
 
   return NextResponse.json(result)
 }
 
-// POST: salva todos os módulos de um treinamento (replace completo)
 export async function POST(req: Request) {
   const user = await checkAccess()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -60,7 +64,6 @@ export async function POST(req: Request) {
   const { treinamento_id, modulos } = await req.json()
   if (!treinamento_id) return NextResponse.json({ error: 'treinamento_id required' }, { status: 400 })
 
-  // Busca módulos existentes para deletar perguntas
   const { data: existentes } = await admin()
     .from('modulos_treinamento')
     .select('id')
@@ -71,19 +74,18 @@ export async function POST(req: Request) {
     await admin().from('perguntas_avaliacao').delete().in('modulo_id', ids)
   }
 
-  // Remove todos os módulos antigos
   await admin().from('modulos_treinamento').delete().eq('treinamento_id', treinamento_id)
 
   if (!modulos?.length) return NextResponse.json({ success: true })
 
-  // Insere novos módulos
   for (const mod of modulos) {
     const { data: novoMod, error: modError } = await admin()
       .from('modulos_treinamento')
       .insert({
         treinamento_id,
         titulo: mod.titulo,
-        video_url: mod.video_url,
+        video_url: mod.videos?.[0]?.url ?? '',
+        videos: mod.videos ?? [],
         descricao: mod.descricao,
         ordem: mod.ordem,
         tem_avaliacao: mod.tem_avaliacao ?? false
@@ -93,7 +95,6 @@ export async function POST(req: Request) {
 
     if (modError || !novoMod) continue
 
-    // Insere perguntas se houver
     if (mod.tem_avaliacao && mod.perguntas?.length) {
       await admin().from('perguntas_avaliacao').insert(
         mod.perguntas.map((p: { texto: string; opcoes: string[]; resposta_correta: number }) => ({
@@ -106,7 +107,6 @@ export async function POST(req: Request) {
     }
   }
 
-  // Atualiza carga_horaria do treinamento com base nos módulos
   await admin()
     .from('treinamentos')
     .update({ carga_horaria: modulos.length })
