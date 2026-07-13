@@ -1,13 +1,13 @@
-'use client'
+﻿'use client'
 import { useState, useEffect } from 'react'
-import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star, Video, ChevronDown, ChevronUp, GripVertical, HelpCircle } from 'lucide-react'
+import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star, Video, ChevronDown, ChevronUp, GripVertical, HelpCircle, Image, ExternalLink } from 'lucide-react'
 
-type Treinamento = { id: string; titulo: string; categoria: string; carga_horaria: number; pontos_conclusao: number; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; modulos?: Modulo[] }
+type Treinamento = { id: string; titulo: string; categoria: string; carga_horaria: number; pontos_conclusao: number; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; capa_url?: string; modulos?: Modulo[] }
 type Modulo = { id?: string; titulo: string; video_url: string; descricao: string; ordem: number; tem_avaliacao: boolean; perguntas?: Pergunta[] }
 type Pergunta = { id?: string; texto: string; opcoes: string[]; resposta_correta: number }
-type Form = { titulo: string; categoria: string; carga_horaria: string; pontos_conclusao: string; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean }
+type Form = { titulo: string; categoria: string; carga_horaria: string; pontos_conclusao: string; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; capa_url: string }
 
-const emptyForm: Form = { titulo: '', categoria: '', carga_horaria: '1', pontos_conclusao: '100', ativo: true, requerido_vale: false, obrigatorio: false }
+const emptyForm: Form = { titulo: '', categoria: '', carga_horaria: '1', pontos_conclusao: '100', ativo: true, requerido_vale: false, obrigatorio: false, capa_url: '' }
 const categorias = ['Segurança', 'Qualidade', 'Operações', 'Gestão', 'Compliance', 'Tecnologia', 'RH', 'Financeiro', 'Equipamentos', 'Outros']
 
 function emptyModulo(ordem: number): Modulo {
@@ -16,6 +16,19 @@ function emptyModulo(ordem: number): Modulo {
 
 function emptyPergunta(): Pergunta {
   return { texto: '', opcoes: ['', '', '', ''], resposta_correta: 0 }
+}
+
+function getYoutubeThumbnail(url: string): string | null {
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+  return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null
+}
+
+function resolveCapaUrl(url: string): string | null {
+  if (!url) return null
+  const yt = getYoutubeThumbnail(url)
+  if (yt) return yt
+  if (url.startsWith('http')) return url
+  return null
 }
 
 export default function AdminTreinamentosPage() {
@@ -40,7 +53,7 @@ export default function AdminTreinamentosPage() {
   function abrirCriar() { setForm(emptyForm); setMsg(''); setModal('criar') }
   function abrirEditar(t: Treinamento) {
     setSelecionado(t)
-    setForm({ titulo: t.titulo, categoria: t.categoria ?? '', carga_horaria: String(t.carga_horaria ?? 1), pontos_conclusao: String(t.pontos_conclusao ?? 100), ativo: t.ativo, requerido_vale: t.requerido_vale, obrigatorio: t.obrigatorio })
+    setForm({ titulo: t.titulo, categoria: t.categoria ?? '', carga_horaria: String(t.carga_horaria ?? 1), pontos_conclusao: String(t.pontos_conclusao ?? 100), ativo: t.ativo, requerido_vale: t.requerido_vale, obrigatorio: t.obrigatorio, capa_url: t.capa_url ?? '' })
     setMsg(''); setModal('editar')
   }
   function abrirExcluir(t: Treinamento) { setSelecionado(t); setModal('excluir') }
@@ -68,6 +81,8 @@ export default function AdminTreinamentosPage() {
 
   const filtrados = treinamentos.filter(t => t.titulo?.toLowerCase().includes(busca.toLowerCase()) || t.categoria?.toLowerCase().includes(busca.toLowerCase()))
 
+  const capaPreview = resolveCapaUrl(form.capa_url)
+
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
@@ -90,49 +105,61 @@ export default function AdminTreinamentosPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              {['Título', 'Categoria', 'Módulos', 'Carga H.', 'Pontos', 'Status', ''].map(h => (
+              {['Capa', 'Título', 'Categoria', 'Módulos', 'Carga H.', 'Pontos', 'Status', ''].map(h => (
                 <th key={h} className="text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan={7} className="text-center py-8 text-sm text-gray-400">Carregando...</td></tr>
-            ) : filtrados.map(t => (
-              <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 font-semibold text-gray-900 max-w-[200px]">
-                  <span className="truncate block">{t.titulo}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{t.categoria || '—'}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <button onClick={() => abrirModulos(t)}
-                    className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold">
-                    <Video size={12} />
-                    {(t.modulos?.length ?? 0)} módulos
-                  </button>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="flex items-center gap-1 text-xs text-gray-600"><Clock size={11} /> {t.carga_horaria}h</span>
-                </td>
-                <td className="px-4 py-3 text-[#7ED321] font-semibold text-xs">
-                  <span className="flex items-center gap-1"><Star size={11} /> {t.pontos_conclusao?.toLocaleString('pt-BR')}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${t.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {t.ativo ? 'Ativo' : 'Inativo'}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => abrirModulos(t)} title="Módulos e vídeos" className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-500"><Video size={13} /></button>
-                    <button onClick={() => abrirEditar(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#7ED321]"><Pencil size={13} /></button>
-                    <button onClick={() => abrirExcluir(t)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500"><Trash2 size={13} /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+              <tr><td colSpan={8} className="text-center py-8 text-sm text-gray-400">Carregando...</td></tr>
+            ) : filtrados.map(t => {
+              const thumb = resolveCapaUrl(t.capa_url ?? '')
+              return (
+                <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    {thumb ? (
+                      <img src={thumb} alt={t.titulo} className="w-14 h-10 object-cover rounded-lg border border-gray-100" />
+                    ) : (
+                      <div className="w-14 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <Image size={14} className="text-gray-300" />
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-gray-900 max-w-[180px]">
+                    <span className="truncate block">{t.titulo}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{t.categoria || '—'}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => abrirModulos(t)}
+                      className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold">
+                      <Video size={12} />
+                      {(t.modulos?.length ?? 0)} módulos
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="flex items-center gap-1 text-xs text-gray-600"><Clock size={11} /> {t.carga_horaria}h</span>
+                  </td>
+                  <td className="px-4 py-3 text-[#7ED321] font-semibold text-xs">
+                    <span className="flex items-center gap-1"><Star size={11} /> {t.pontos_conclusao?.toLocaleString('pt-BR')}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${t.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {t.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => abrirModulos(t)} title="Módulos e vídeos" className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-500"><Video size={13} /></button>
+                      <button onClick={() => abrirEditar(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#7ED321]"><Pencil size={13} /></button>
+                      <button onClick={() => abrirExcluir(t)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500"><Trash2 size={13} /></button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -146,6 +173,33 @@ export default function AdminTreinamentosPage() {
               <button onClick={() => setModal(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
             </div>
             <div className="space-y-3">
+              {/* Capa */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1"><Image size={12} /> Capa do treinamento</label>
+                <input value={form.capa_url} onChange={e => setForm(f => ({ ...f, capa_url: e.target.value }))}
+                  placeholder="URL da imagem ou link do YouTube (thumbnail automático)"
+                  className="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm outline-none focus:border-[#7ED321]" />
+                {capaPreview ? (
+                  <div className="mt-2 relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                    <img src={capaPreview} alt="Preview da capa" className="w-full h-36 object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                    <div className="absolute top-2 right-2">
+                      <a href={form.capa_url} target="_blank" rel="noreferrer" className="bg-black/50 text-white rounded-lg p-1.5 flex items-center gap-1 text-[10px] hover:bg-black/70">
+                        <ExternalLink size={10} /> Ver original
+                      </a>
+                    </div>
+                    {getYoutubeThumbnail(form.capa_url) && (
+                      <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full">
+                        Thumbnail do YouTube detectado
+                      </div>
+                    )}
+                  </div>
+                ) : form.capa_url ? (
+                  <p className="text-[11px] text-red-500 mt-1">URL inválida ou imagem não encontrada</p>
+                ) : (
+                  <p className="text-[11px] text-gray-400 mt-1">Cole um link de imagem (jpg, png) ou um link do YouTube para gerar a capa automaticamente</p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
                 <input value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ex: Treinamento Impressora UV"
@@ -315,7 +369,6 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
             <>
               {modulos.map((m, i) => (
                 <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
-                  {/* Header do módulo */}
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50">
                     <GripVertical size={14} className="text-gray-400 flex-shrink-0" />
                     <div className="w-6 h-6 rounded-full bg-gray-900 text-[#7ED321] text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</div>
@@ -330,7 +383,6 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
 
                   {expandido === i && (
                     <div className="px-4 py-4 space-y-3">
-                      {/* URL do vídeo */}
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1"><Video size={12} /> Link do vídeo</label>
                         <input value={m.video_url} onChange={e => updateModulo(i, 'video_url', e.target.value)}
@@ -342,14 +394,12 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
                           </a>
                         )}
                       </div>
-                      {/* Descrição */}
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Descrição (opcional)</label>
                         <textarea value={m.descricao} onChange={e => updateModulo(i, 'descricao', e.target.value)}
                           placeholder="O que o colaborador vai aprender neste módulo..."
                           rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#7ED321] resize-none" />
                       </div>
-                      {/* Avaliação */}
                       <div>
                         <label className="flex items-center gap-2 cursor-pointer mb-3">
                           <input type="checkbox" checked={m.tem_avaliacao} onChange={e => updateModulo(i, 'tem_avaliacao', e.target.checked)} className="w-4 h-4 accent-[#7ED321]" />
