@@ -21,8 +21,18 @@ async function checkAdmin() {
 export async function GET() {
   const user = await checkAdmin()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { data } = await admin().from('treinamentos').select('*').order('created_at', { ascending: false })
-  return NextResponse.json(data)
+  const { data } = await admin()
+    .from('treinamentos')
+    .select('*, modulos_treinamento(count)')
+    .order('created_at', { ascending: false })
+
+  const result = (data ?? []).map((t: Record<string, unknown> & { modulos_treinamento?: { count: number }[] }) => ({
+    ...t,
+    modulos: t.modulos_treinamento ?? [],
+    modulos_count: t.modulos_treinamento?.[0]?.count ?? 0,
+    modulos_treinamento: undefined,
+  }))
+  return NextResponse.json(result)
 }
 
 export async function POST(req: Request) {

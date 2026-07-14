@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star, Video, ChevronDown, ChevronUp, GripVertical, HelpCircle, Image, Upload, Loader2, Link2 } from 'lucide-react'
 
 type Video = { titulo: string; url: string }
-type Treinamento = { id: string; titulo: string; categoria: string; carga_horaria: number; pontos_conclusao: number; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; capa_url?: string; modulos?: Modulo[] }
+type Treinamento = { id: string; titulo: string; categoria: string; carga_horaria: number; pontos_conclusao: number; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; capa_url?: string; modulos_count?: number; modulos?: Modulo[] }
 type Modulo = { id?: string; titulo: string; videos: Video[]; descricao: string; ordem: number; tem_avaliacao: boolean; perguntas?: Pergunta[] }
 type Pergunta = { id?: string; texto: string; opcoes: string[]; resposta_correta: number }
 type Form = { titulo: string; categoria: string; carga_horaria: string; pontos_conclusao: string; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; capa_url: string }
@@ -133,7 +133,7 @@ export default function AdminTreinamentosPage() {
                 </td>
                 <td className="px-4 py-3">
                   <button onClick={() => abrirModulos(t)} className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold">
-                    <Video size={12} />{(t.modulos?.length ?? 0)} módulos
+                    <Video size={12} />{t.modulos_count ?? t.modulos?.length ?? 0} módulos
                   </button>
                 </td>
                 <td className="px-4 py-3">
