@@ -26,7 +26,7 @@ export async function GET() {
   const { data: colaboradores } = await admin()
     .from('profiles')
     .select('user_id, nome, funcao, setor')
-    .in('role', ['colaborador', 'rh'])
+    .in('role', ['colaborador'])
     .order('nome')
 
   const { data: acessos } = await admin()
