@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { BookOpen, Wrench, Download, Lock } from 'lucide-react'
+import { BookOpen, Wrench, Lock } from 'lucide-react'
+import Link from 'next/link'
 
 const SUPABASE_URL = 'https://hipuneooqzrpwbcyfzkp.supabase.co'
 const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpcHVuZW9vcXpycHdiY3lmemtwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTgxOTM4NywiZXhwIjoyMDk3Mzk1Mzg3fQ.F2nWXapFhZYTL0P4NciUBLFE1xPdfQaIi5ADyrZX9dA'
@@ -54,6 +55,19 @@ export default async function BibliotecaPage() {
     equipamentosVisiveis = EQUIPAMENTOS.filter(eq => idsLiberados.has(eq.id))
   }
 
+  // Busca treinamentos para vincular pelo nome do equipamento
+  const { data: treinamentos } = await admin()
+    .from('treinamentos')
+    .select('id, titulo')
+    .eq('ativo', true)
+
+  function encontrarTreinamento(nomeEquip: string) {
+    return treinamentos?.find(t =>
+      t.titulo.toLowerCase().includes(nomeEquip.toLowerCase()) ||
+      nomeEquip.toLowerCase().includes(t.titulo.toLowerCase())
+    )
+  }
+
   return (
     <div>
       <div className="mb-5">
@@ -69,27 +83,37 @@ export default async function BibliotecaPage() {
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-4">
-          {equipamentosVisiveis.map(eq => (
-            <div key={eq.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-[#7ED321] transition-colors group">
-              <div className="h-28 bg-gray-900 flex items-center justify-center">
-                <Wrench size={36} className="text-[#7ED321] opacity-60 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <div className="p-4">
-                <div className="flex items-start justify-between mb-1.5">
-                  <h3 className="text-sm font-semibold text-gray-900 leading-tight">{eq.nome}</h3>
-                  <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${categoriaColor[eq.categoria] ?? 'bg-gray-100 text-gray-600'}`}>
-                    {eq.categoria}
-                  </span>
+          {equipamentosVisiveis.map(eq => {
+            const treinamento = encontrarTreinamento(eq.nome)
+            return (
+              <div key={eq.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-[#7ED321] transition-colors group">
+                <div className="h-28 bg-gray-900 flex items-center justify-center">
+                  <Wrench size={36} className="text-[#7ED321] opacity-60 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <p className="text-[11px] text-gray-500 mb-3 leading-relaxed">{eq.descricao}</p>
-                <div className="flex gap-2">
-                  <button className="flex items-center gap-1 text-[10px] px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium transition-colors">
-                    <BookOpen size={11} /> Ver treinamento
-                  </button>
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-1.5">
+                    <h3 className="text-sm font-semibold text-gray-900 leading-tight">{eq.nome}</h3>
+                    <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${categoriaColor[eq.categoria] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {eq.categoria}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mb-3 leading-relaxed">{eq.descricao}</p>
+                  <div className="flex gap-2">
+                    {treinamento ? (
+                      <Link href={`/treinamentos/${treinamento.id}`}
+                        className="flex items-center gap-1 text-[10px] px-2.5 py-1.5 bg-[#7ED321] hover:bg-[#6bbf1a] rounded-lg text-black font-semibold transition-colors">
+                        <BookOpen size={11} /> Ver treinamento
+                      </Link>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[10px] px-2.5 py-1.5 bg-gray-100 rounded-lg text-gray-400">
+                        <BookOpen size={11} /> Sem treinamento vinculado
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
