@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
 import { Clock, Star, Play, CheckCircle, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 
@@ -12,11 +12,24 @@ function admin() {
 
 export const dynamic = 'force-dynamic'
 
+type Treinamento = {
+  id: string
+  titulo: string
+  categoria: string
+  carga_horaria: number
+  pontos_conclusao: number
+  ativo: boolean
+  obrigatorio: boolean
+  requerido_vale: boolean
+  capa_url?: string
+  modulos_count: number
+}
+
 export default async function TreinamentosPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: treinamentos } = await admin()
+  const { data: raw } = await admin()
     .from('treinamentos')
     .select('*, modulos_treinamento(count)')
     .eq('ativo', true)
@@ -32,8 +45,21 @@ export default async function TreinamentosPage() {
   const concluidos = progressos?.filter(p => p.status === 'concluido').length ?? 0
   const emAndamento = progressos?.filter(p => p.status === 'em_andamento').length ?? 0
 
-  const lista = (treinamentos ?? []).map((t: Record<string, unknown> & { modulos_treinamento?: { count: number }[] }) => ({
-    ...t,
+  const treinamentos: Treinamento[] = (raw ?? []).map((t: {
+    id: string; titulo: string; categoria: string; carga_horaria: number
+    pontos_conclusao: number; ativo: boolean; obrigatorio: boolean
+    requerido_vale: boolean; capa_url?: string
+    modulos_treinamento?: { count: number }[]
+  }) => ({
+    id: t.id,
+    titulo: t.titulo,
+    categoria: t.categoria,
+    carga_horaria: t.carga_horaria,
+    pontos_conclusao: t.pontos_conclusao,
+    ativo: t.ativo,
+    obrigatorio: t.obrigatorio,
+    requerido_vale: t.requerido_vale,
+    capa_url: t.capa_url,
     modulos_count: t.modulos_treinamento?.[0]?.count ?? 0,
   }))
 
@@ -44,10 +70,10 @@ export default async function TreinamentosPage() {
 
       <div className="grid grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Total de cursos', value: lista.length },
+          { label: 'Total de cursos', value: treinamentos.length },
           { label: 'Concluídos', value: concluidos, green: true },
           { label: 'Em andamento', value: emAndamento, amber: true },
-          { label: 'Disponíveis', value: lista.length - concluidos },
+          { label: 'Disponíveis', value: treinamentos.length - concluidos },
         ].map(({ label, value, green, amber }) => (
           <div key={label} className="bg-white rounded-xl border border-gray-200 p-3">
             <p className="text-[10px] text-gray-400 mb-1">{label}</p>
@@ -57,31 +83,28 @@ export default async function TreinamentosPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {lista.map(t => {
-          const p = progressoMap[t.id as string]
+        {treinamentos.map(t => {
+          const p = progressoMap[t.id]
           const status = p?.status ?? 'nao_iniciado'
           const percentual = p?.percentual ?? 0
 
           return (
-            <Link key={t.id as string} href={`/treinamentos/${t.id}`}
+            <Link key={t.id} href={`/treinamentos/${t.id}`}
               className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-[#7ED321] hover:shadow-md transition-all group">
 
-              {/* Capa */}
               <div className="relative h-36 bg-gray-100">
                 {t.capa_url ? (
-                  <img src={t.capa_url as string} alt={t.titulo as string} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <img src={t.capa_url} alt={t.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <BookOpen size={32} className="text-gray-300" />
                   </div>
                 )}
-                {/* Overlay play */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
                   <div className="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg">
                     <Play size={16} className="text-gray-800 ml-0.5" fill="currentColor" />
                   </div>
                 </div>
-                {/* Status badge */}
                 {status === 'concluido' && (
                   <div className="absolute top-2 right-2 bg-[#7ED321] text-black text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                     <CheckCircle size={10} /> Concluído
@@ -99,17 +122,15 @@ export default async function TreinamentosPage() {
                 )}
               </div>
 
-              {/* Info */}
               <div className="p-4">
-                <p className="text-xs font-semibold text-[#7ED321] mb-1">{t.categoria as string}</p>
-                <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2">{t.titulo as string}</h3>
+                <p className="text-xs font-semibold text-[#7ED321] mb-1">{t.categoria}</p>
+                <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2">{t.titulo}</h3>
                 <div className="flex items-center gap-3 text-[11px] text-gray-400 mb-3">
                   <span className="flex items-center gap-1"><BookOpen size={11} /> {t.modulos_count} módulos</span>
-                  <span className="flex items-center gap-1"><Clock size={11} /> {t.carga_horaria as number}h</span>
-                  <span className="flex items-center gap-1 text-[#7ED321] font-semibold"><Star size={11} /> {(t.pontos_conclusao as number).toLocaleString('pt-BR')}</span>
+                  <span className="flex items-center gap-1"><Clock size={11} /> {t.carga_horaria}h</span>
+                  <span className="flex items-center gap-1 text-[#7ED321] font-semibold"><Star size={11} /> {t.pontos_conclusao.toLocaleString('pt-BR')}</span>
                 </div>
 
-                {/* Barra de progresso */}
                 {status !== 'nao_iniciado' && (
                   <div>
                     <div className="flex justify-between text-[10px] text-gray-400 mb-1">
@@ -132,7 +153,7 @@ export default async function TreinamentosPage() {
         })}
       </div>
 
-      {lista.length === 0 && (
+      {treinamentos.length === 0 && (
         <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center">
           <BookOpen size={36} className="text-gray-200 mx-auto mb-3" />
           <p className="text-sm text-gray-500">Nenhum treinamento disponível no momento.</p>
