@@ -1,5 +1,5 @@
 ﻿'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff, Users, Monitor, Star } from 'lucide-react'
@@ -12,6 +12,13 @@ export default function LoginPage() {
   const [erro, setErro] = useState('')
   const [loading, setLoading] = useState(false)
   const [resetEnviado, setResetEnviado] = useState(false)
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('type=recovery') || hash.includes('access_token')) {
+      router.replace('/reset-password' + hash)
+    }
+  }, [])
 
   async function handleEsqueceuSenha() {
     if (!email) { setErro('Digite seu e-mail antes de clicar em "Esqueceu a senha?".'); return }

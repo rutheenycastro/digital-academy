@@ -11,6 +11,18 @@ export default function ResetPasswordPage() {
   const [sucesso, setSucesso] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('access_token')) {
+      const params = new URLSearchParams(hash.substring(1))
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+      if (accessToken && refreshToken) {
+        createClient().auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      }
+    }
+  }, [])
+
   async function handleReset(e: React.FormEvent) {
     e.preventDefault()
     if (senha !== confirmar) { setErro('As senhas não coincidem.'); return }
