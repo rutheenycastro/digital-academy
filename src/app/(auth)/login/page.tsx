@@ -154,15 +154,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-5 bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs">
-          <p className="font-semibold text-gray-700 mb-2">Credenciais de demonstracao:</p>
-          <div className="flex justify-between text-gray-500 mb-1">
-            <span>Colaborador:</span><span className="text-gray-700 font-medium">colaborador@digital.com / 123456</span>
-          </div>
-          <div className="flex justify-between text-gray-500">
-            <span>Gestor:</span><span className="text-gray-700 font-medium">gestor@digital.com / 123456</span>
-          </div>
-        </div>
       </div>
     </div>
   )
