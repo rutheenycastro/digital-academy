@@ -1,10 +1,11 @@
 ﻿'use client'
-import { useState, useEffect, useRef } from 'react'
-import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star, Video, ChevronDown, ChevronUp, GripVertical, HelpCircle, Image, Upload, Loader2, Link2 } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { BookOpen, Plus, Pencil, Trash2, X, Check, AlertTriangle, Search, Clock, Star, Video, ChevronDown, ChevronUp, GripVertical, HelpCircle, Image, Upload, Loader2, Link2, FileText } from 'lucide-react'
 
 type Video = { titulo: string; url: string }
+type Pdf = { titulo: string; url: string }
 type Treinamento = { id: string; titulo: string; categoria: string; carga_horaria: number; pontos_conclusao: number; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; capa_url?: string; modulos_count?: number; modulos?: Modulo[] }
-type Modulo = { id?: string; titulo: string; videos: Video[]; descricao: string; ordem: number; tem_avaliacao: boolean; perguntas?: Pergunta[] }
+type Modulo = { id?: string; titulo: string; videos: Video[]; pdfs?: Pdf[]; descricao: string; ordem: number; tem_avaliacao: boolean; perguntas?: Pergunta[] }
 type Pergunta = { id?: string; texto: string; opcoes: string[]; resposta_correta: number }
 type Form = { titulo: string; categoria: string; carga_horaria: string; pontos_conclusao: string; ativo: boolean; requerido_vale: boolean; obrigatorio: boolean; capa_url: string }
 
@@ -12,7 +13,7 @@ const emptyForm: Form = { titulo: '', categoria: '', carga_horaria: '1', pontos_
 const categorias = ['Segurança', 'Qualidade', 'Operações', 'Gestão', 'Compliance', 'Tecnologia', 'RH', 'Financeiro', 'Equipamentos', 'Outros']
 
 function emptyModulo(ordem: number): Modulo {
-  return { titulo: '', videos: [{ titulo: '', url: '' }], descricao: '', ordem, tem_avaliacao: false, perguntas: [] }
+  return { titulo: '', videos: [{ titulo: '', url: '' }], pdfs: [], descricao: '', ordem, tem_avaliacao: false, perguntas: [] }
 }
 function emptyPergunta(): Pergunta {
   return { texto: '', opcoes: ['', '', '', ''], resposta_correta: 0 }
@@ -292,6 +293,8 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
   const [salvando, setSalvando] = useState(false)
   const [expandido, setExpandido] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
+  const [uploadingPdf, setUploadingPdf] = useState<number | null>(null)
+  const pdfRefs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
     fetch(`/api/admin/modulos?treinamento_id=${treinamento.id}`)
@@ -355,6 +358,33 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
           ? { ...p, opcoes: p.opcoes.map((o, oi) => oi === iOpc ? valor : o) }
           : p)
         }
+      : m
+    ))
+  }
+
+  async function handleUploadPdf(iMod: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingPdf(iMod)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/admin/treinamentos/upload-pdf', { method: 'POST', body: fd })
+    const data = await res.json()
+    if (res.ok) {
+      setModulos(prev => prev.map((m, idx) => idx === iMod
+        ? { ...m, pdfs: [...(m.pdfs ?? []), { titulo: data.nome ?? file.name, url: data.url }] }
+        : m
+      ))
+    } else {
+      setMsg(data.error ?? 'Erro ao enviar PDF.')
+    }
+    setUploadingPdf(null)
+    if (pdfRefs.current[iMod]) pdfRefs.current[iMod]!.value = ''
+  }
+
+  function removePdf(iMod: number, iPdf: number) {
+    setModulos(prev => prev.map((m, idx) => idx === iMod
+      ? { ...m, pdfs: (m.pdfs ?? []).filter((_, pi) => pi !== iPdf) }
       : m
     ))
   }
@@ -453,6 +483,48 @@ function ModulosModal({ treinamento, onClose }: { treinamento: Treinamento; onCl
                             </div>
                           ))}
                         </div>
+                      </div>
+
+                      {/* Seção de PDFs */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                            <FileText size={12} className="text-[#7ED321]" /> Manuais / PDFs
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => pdfRefs.current[i]?.click()}
+                            disabled={uploadingPdf === i}
+                            className="flex items-center gap-1 text-[11px] text-[#7ED321] font-semibold hover:underline disabled:opacity-50">
+                            {uploadingPdf === i ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+                            {uploadingPdf === i ? 'Enviando...' : 'Adicionar PDF'}
+                          </button>
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            ref={el => { pdfRefs.current[i] = el }}
+                            onChange={e => handleUploadPdf(i, e)}
+                            className="hidden"
+                          />
+                        </div>
+                        {(m.pdfs ?? []).length === 0 ? (
+                          <p className="text-[11px] text-gray-400 italic">Nenhum PDF adicionado ainda.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {(m.pdfs ?? []).map((pdf, pi) => (
+                              <div key={pi} className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+                                <FileText size={14} className="text-orange-500 flex-shrink-0" />
+                                <a href={pdf.url} target="_blank" rel="noreferrer"
+                                  className="flex-1 text-xs text-orange-700 font-medium truncate hover:underline">
+                                  {pdf.titulo}
+                                </a>
+                                <button onClick={() => removePdf(i, pi)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Descrição */}
